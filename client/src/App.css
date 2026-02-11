@@ -67,6 +67,9 @@
   color: var(--text);
   cursor: pointer;
   transition: transform 0.1s ease, background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn:hover:enabled {
@@ -90,6 +93,11 @@
 
 .btn.secondary {
   background: #fff2d8;
+}
+
+.btn.toggle.active {
+  border-color: #2c2c2c;
+  box-shadow: 0 0 0 2px #fff4d6;
 }
 
 .start-view {
@@ -299,15 +307,14 @@
 }
 
 .canvas {
+  width: 100%;
+  height: 360px;
   background: var(--canvas);
   border: 1px solid var(--border);
   border-radius: 12px;
-  height: 360px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  font-weight: 600;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
 }
 
 .tools {
@@ -338,6 +345,9 @@
   height: 12px;
   border-radius: 50%;
   background: #2c2c2c;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
 }
 
 .brush-dot.small {
@@ -350,6 +360,11 @@
   height: 16px;
 }
 
+.brush-dot.selected {
+  border-color: #2c2c2c;
+  box-shadow: 0 0 0 2px #fff4d6;
+}
+
 .color-palette {
   display: flex;
   gap: 8px;
@@ -360,6 +375,13 @@
   height: 22px;
   border-radius: 6px;
   border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+}
+
+.color.selected {
+  border-color: #2c2c2c;
+  box-shadow: 0 0 0 2px #fff4d6;
 }
 
 .game-chat {

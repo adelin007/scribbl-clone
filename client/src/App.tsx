@@ -23,7 +23,7 @@ function App() {
   const isHost = !roomIdFromUrl;
   const playerCount = 1;
   const maxPlayers = 8;
-  const startDisabled = !isHost || playerCount < 2;
+  const startDisabled = !isHost;
   const createDisabled = playerName.length === 0;
 
   const buildRoomId = (name: string) =>
