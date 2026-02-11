@@ -1,0 +1,47 @@
+:root {
+  font-family: 'Trebuchet MS', 'Segoe UI', Verdana, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #2f2a24;
+  background-color: #f4e6c9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --bg: #f4e6c9;
+  --panel: #fff8e6;
+  --border: #d2b98d;
+  --accent: #f2c14e;
+  --accent-light: #f7d37a;
+  --accent-dark: #d79a30;
+  --header: #f6d9a8;
+  --muted: #7a6a52;
+  --text: #2f2a24;
+  --canvas: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+input {
+  font: inherit;
+}
