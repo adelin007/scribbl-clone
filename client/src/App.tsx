@@ -3,6 +3,7 @@ import { GameView } from "./components/GameView";
 import { LobbyView } from "./components/LobbyView";
 import { ResultsView } from "./components/ResultsView";
 import { StartView } from "./components/StartView";
+import { connectSocket, createRoom, disconnectSocket } from "./socket/config";
 import type { GameState } from "./types/views";
 import "./App.css";
 
@@ -47,6 +48,7 @@ function App() {
   const handleCreateRoom = async () => {
     if (createDisabled) return;
     const newRoomId = buildRoomId(playerName);
+    createRoom({ name: playerName, color: playerColor });
     setRoomId(newRoomId);
     await copyToClipboard(buildInviteUrl(newRoomId));
     setGameState("lobby");
@@ -70,7 +72,10 @@ function App() {
   };
 
   useEffect(() => {
+    connectSocket();
+
     return () => {
+      disconnectSocket();
       if (inviteTimeoutRef.current) {
         window.clearTimeout(inviteTimeoutRef.current);
       }
