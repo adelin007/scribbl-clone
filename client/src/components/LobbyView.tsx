@@ -6,13 +6,19 @@ export const LobbyView = ({
   playerCount,
   maxPlayers,
   isHost,
+  isGuestReady,
+  drawTime,
+  rounds,
   startDisabled,
   showStartTooltip,
   inviteCopied,
   roomId,
+  onDrawTimeChange,
+  onRoundsChange,
   onHoverStart,
   onStart,
   onInvite,
+  onToggleReady,
 }: LobbyViewProps) => (
   <section className="view lobby-view">
     <div className="lobby-header">
@@ -35,8 +41,10 @@ export const LobbyView = ({
               <span className="player-name">{playerName || "Player"}</span>
               <span className="player-role">{isHost ? "Host" : "Guest"}</span>
             </div>
-            <span className={`player-status ${isHost ? "ready" : "not-ready"}`}>
-              {isHost ? "Ready" : "Not ready"}
+            <span
+              className={`player-status ${isHost || isGuestReady ? "ready" : "not-ready"}`}
+            >
+              {isHost || isGuestReady ? "Ready" : "Not ready"}
             </span>
           </div>
 
@@ -71,6 +79,36 @@ export const LobbyView = ({
 
       <div className="panel lobby-actions">
         <h3>Room Controls</h3>
+        {isHost && (
+          <div className="settings-grid">
+            <label className="field">
+              <span>Draw time</span>
+              <select
+                value={drawTime}
+                onChange={(event) => onDrawTimeChange(event.target.value)}
+              >
+                <option value="">Select</option>
+                <option value="60">60s</option>
+                <option value="80">80s</option>
+                <option value="100">100s</option>
+                <option value="120">120s</option>
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Rounds</span>
+              <select
+                value={rounds}
+                onChange={(event) => onRoundsChange(event.target.value)}
+              >
+                <option value="">Select</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </label>
+          </div>
+        )}
         <div className="actions-row">
           <div
             className="start-button-wrap"
@@ -81,16 +119,16 @@ export const LobbyView = ({
           >
             {startDisabled && showStartTooltip && (
               <div className="tooltip">
-                At least 2 players required
+                Select draw time and rounds
                 <span className="tooltip-arrow" />
               </div>
             )}
             <button
               className="btn primary"
               disabled={startDisabled}
-              onClick={onStart}
+              onClick={isHost ? onStart : onToggleReady}
             >
-              {isHost ? "Start" : "Ready"}
+              {isHost ? "Start" : isGuestReady ? "Not ready" : "Ready"}
             </button>
           </div>
 

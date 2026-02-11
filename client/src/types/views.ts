@@ -4,6 +4,10 @@ export type StartViewProps = {
   playerName: string;
   playerColor: string;
   createDisabled: boolean;
+  isGuest: boolean;
+  title: string;
+  subtitle: string;
+  actionLabel: string;
   onNameChange: (value: string) => void;
   onColorChange: (value: string) => void;
   onCreate: () => void;
@@ -15,13 +19,19 @@ export type LobbyViewProps = {
   playerCount: number;
   maxPlayers: number;
   isHost: boolean;
+  isGuestReady: boolean;
+  drawTime: string;
+  rounds: string;
   startDisabled: boolean;
   showStartTooltip: boolean;
   inviteCopied: boolean;
   roomId: string;
+  onDrawTimeChange: (value: string) => void;
+  onRoundsChange: (value: string) => void;
   onHoverStart: (isHovering: boolean) => void;
   onStart: () => void;
   onInvite: () => void;
+  onToggleReady: () => void;
 };
 
 export type GameViewProps = {

@@ -10,21 +10,23 @@ function App() {
   const roomIdFromUrl = new URLSearchParams(window.location.search).get(
     "roomId",
   );
-  const [gameState, setGameState] = useState<GameState>(
-    roomIdFromUrl ? "lobby" : "start",
-  );
-  const [playerName, setPlayerName] = useState(roomIdFromUrl ? "Guest" : "");
-  const [playerColor, setPlayerColor] = useState("#f25c54");
+  const isGuest = Boolean(roomIdFromUrl);
+  const [gameState, setGameState] = useState<GameState>("start");
+  const [playerName, setPlayerName] = useState("");
+  const [playerColor, setPlayerColor] = useState("");
   const [roomId, setRoomId] = useState(roomIdFromUrl || "");
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showStartTooltip, setShowStartTooltip] = useState(false);
+  const [isGuestReady, setIsGuestReady] = useState(false);
+  const [drawTime, setDrawTime] = useState("");
+  const [rounds, setRounds] = useState("");
   const inviteTimeoutRef = useRef<number | null>(null);
 
   const isHost = !roomIdFromUrl;
   const playerCount = 1;
   const maxPlayers = 8;
-  const startDisabled = !isHost;
-  const createDisabled = playerName.length === 0;
+  const startDisabled = isHost && (!drawTime || !rounds);
+  const createDisabled = playerName.length === 0 || playerColor.length === 0;
 
   const buildRoomId = (name: string) =>
     name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -47,6 +49,11 @@ function App() {
     const newRoomId = buildRoomId(playerName);
     setRoomId(newRoomId);
     await copyToClipboard(buildInviteUrl(newRoomId));
+    setGameState("lobby");
+  };
+
+  const handleJoinRoom = () => {
+    if (createDisabled) return;
     setGameState("lobby");
   };
 
@@ -74,7 +81,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-title">Scribbl</div>
-        <div className="app-subtitle">Client UI preview</div>
+        {/* <div className="app-subtitle">Client UI preview</div> */}
       </header>
 
       <main className="app-main">
@@ -83,9 +90,17 @@ function App() {
             playerName={playerName}
             playerColor={playerColor}
             createDisabled={createDisabled}
+            isGuest={isGuest}
+            title={isGuest ? "Join Room" : "Create a Private Room"}
+            subtitle={
+              isGuest
+                ? "Pick a name and color before getting ready."
+                : "Pick a name and color to start. We will copy your invite link."
+            }
+            actionLabel={isGuest ? "Continue" : "Create Private Room"}
             onNameChange={setPlayerName}
             onColorChange={setPlayerColor}
-            onCreate={handleCreateRoom}
+            onCreate={isGuest ? handleJoinRoom : handleCreateRoom}
           />
         )}
 
@@ -96,13 +111,19 @@ function App() {
             playerCount={playerCount}
             maxPlayers={maxPlayers}
             isHost={isHost}
+            isGuestReady={isGuestReady}
+            drawTime={drawTime}
+            rounds={rounds}
             startDisabled={startDisabled}
             showStartTooltip={showStartTooltip}
             inviteCopied={inviteCopied}
             roomId={roomId}
+            onDrawTimeChange={setDrawTime}
+            onRoundsChange={setRounds}
             onHoverStart={(isHovering) => setShowStartTooltip(isHovering)}
             onStart={() => setGameState("game")}
             onInvite={handleInvite}
+            onToggleReady={() => setIsGuestReady((prev) => !prev)}
           />
         )}
 
