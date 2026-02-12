@@ -488,12 +488,6 @@
   background: #fffdf6;
 }
 
-.game-prompt {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .word-placeholder {
   letter-spacing: 4px;
   font-weight: 700;

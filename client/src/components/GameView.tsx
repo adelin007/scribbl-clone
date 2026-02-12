@@ -663,13 +663,26 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
           <strong>Round 1</strong>
           <span className="muted"> / 3</span>
         </div>
-        <div className="game-topbar-center">
-          {isDrawingAllowed && room?.gameState?.currentWord ? (
-            <>
-              Draw: <strong>{room.gameState.currentWord}</strong>
-            </>
-          ) : (
-            "Guess the word!"
+        <div
+          className="game-topbar-center"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+        >
+          <div>{isDrawingAllowed ? "Draw this word:" : "Guess the word!"}</div>
+          {isDrawingAllowed && room?.gameState?.currentWord && (
+            <div
+              style={{
+                fontSize: "2rem",
+                fontWeight: "700",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {room.gameState.currentWord}
+            </div>
           )}
         </div>
         <div className="game-timer">01:32</div>
@@ -877,11 +890,6 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             />
           )}
         </aside>
-      </div>
-
-      <div className="panel game-prompt">
-        <span className="label">Word:</span>
-        <span className="word-placeholder">_ _ _ _ _</span>
       </div>
     </section>
   );
