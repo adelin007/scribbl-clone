@@ -850,6 +850,30 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
               const player = gamePlayers.find(
                 (p) => p.id === guessItem.playerId,
               );
+
+              // If local player hasn't guessed yet
+              if (!localPlayer?.guessed) {
+                // Hide incorrect guesses completely
+                if (!guessItem.correct) {
+                  return null;
+                }
+                // For correct guesses, show "Player X had guessed" without revealing the word
+                return (
+                  <div
+                    key={index}
+                    className="chat-line"
+                    style={{
+                      color: "#22c55e",
+                      fontWeight: "600",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    <span>{player?.name || "Unknown"} had guessed</span>
+                  </div>
+                );
+              }
+
+              // If player has guessed, show all guesses normally
               return (
                 <div
                   key={index}

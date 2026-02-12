@@ -195,9 +195,7 @@ export function setupSocket(io: Server) {
         playerId: Player["id"];
         guess: string;
       }) => {
-        console.log(`Received guess: ${JSON.stringify(data)}`);
         const result = handleGuess(data.roomId, data.playerId, data.guess);
-        console.log(`Guess result: ${JSON.stringify(result.room)}`);
         io.to(data.roomId).emit(GameEvent.GUESS_MADE, result.room);
       },
     );
