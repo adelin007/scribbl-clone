@@ -24,11 +24,19 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const brushSizes = [4, 8, 14];
   const brushColors = [
     "#000000",
-    "#ff5b5b",
-    "#ffd166",
-    "#06d6a0",
-    "#118ab2",
     "#ffffff",
+    "#ff0000",
+    "#ff7f00",
+    "#ffff00",
+    "#7fff00",
+    "#00ff00",
+    "#00ff7f",
+    "#00ffff",
+    "#007fff",
+    "#0000ff",
+    "#7f00ff",
+    "#ff00ff",
+    "#ff007f",
   ];
   const eraserColor = "#ffffff";
   const remotePointsRef = useRef(
@@ -396,10 +404,10 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingAllowed) return;
     if (!canvasReady) return;
-    if (activeTool === "bucket") {
-      handleBucketFill(event);
-      return;
-    }
+    // if (activeTool === "bucket") {
+    //   handleBucketFill(event);
+    //   return;
+    // }
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
     const point = getPoint(event);
@@ -463,6 +471,8 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
           <ul className="list">
             {gamePlayers.map((player) => {
               const isDrawer = player.id === room?.gameState?.currentDrawerId;
+              const isLocalPlayer =
+                player.name === playerName && player.color === playerColor;
               return (
                 <li
                   className={`list-item ${isDrawer ? "drawing" : ""}`}
@@ -472,7 +482,10 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                     className="avatar"
                     style={{ backgroundColor: player.color }}
                   />
-                  <span>{player.name}</span>
+                  <span>
+                    {player.name}
+                    {isLocalPlayer && <span className="player-you">YOU</span>}
+                  </span>
                   {isDrawer && <span className="drawer-badge">Drawing</span>}
                 </li>
               );
@@ -486,9 +499,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             className="canvas"
             style={{
               cursor: isDrawingAllowed
-                ? activeTool === "bucket"
-                  ? buildBucketCursor()
-                  : buildBrushCursor(brushSize, getActiveColor())
+                ? buildBrushCursor(brushSize, getActiveColor())
                 : "not-allowed",
             }}
             onPointerDown={handlePointerDown}
@@ -506,6 +517,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 <Paintbrush size={16} />
                 Brush
               </button>
+              {/*
               <button
                 type="button"
                 className={`btn secondary toggle ${activeTool === "bucket" ? "active" : ""}`}
@@ -514,6 +526,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 <PaintBucket size={16} />
                 Bucket
               </button>
+              */}
               {/*
               <button
                 type="button"

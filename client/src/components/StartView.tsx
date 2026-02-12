@@ -23,6 +23,12 @@ export const StartView = ({
     "#06d6a0",
     "#118ab2",
     "#7b5cff",
+    "#ff9f1c",
+    "#ef476f",
+    "#06b6d4",
+    "#22c55e",
+    "#f97316",
+    "#8b5cf6",
   ];
 
   return (

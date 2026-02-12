@@ -302,7 +302,7 @@
 
 .game-grid {
   display: grid;
-  grid-template-columns: 220px 1fr 260px;
+  grid-template-columns: 330px 1fr 390px;
   gap: 16px;
 }
 
@@ -334,6 +334,17 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text);
+}
+
+.player-you {
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--accent-light);
+  border: 1px solid var(--accent-dark);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .game-board {
