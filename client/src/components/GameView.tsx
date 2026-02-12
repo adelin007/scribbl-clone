@@ -851,12 +851,8 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 (p) => p.id === guessItem.playerId,
               );
 
-              // If local player hasn't guessed yet
-              if (!localPlayer?.guessed) {
-                // Hide incorrect guesses completely
-                if (!guessItem.correct) {
-                  return null;
-                }
+              // If local player hasn't guessed yet and this is a correct guess
+              if (!localPlayer?.guessed && guessItem.correct) {
                 // For correct guesses, show "Player X had guessed" without revealing the word
                 return (
                   <div
@@ -873,7 +869,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 );
               }
 
-              // If player has guessed, show all guesses normally
+              // Show all incorrect guesses and all guesses for players who have guessed
               return (
                 <div
                   key={index}
