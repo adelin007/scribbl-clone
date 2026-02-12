@@ -353,6 +353,12 @@
   gap: 16px;
 }
 
+.canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 720px;
+}
+
 .canvas {
   width: 100%;
   height: 720px;
@@ -362,6 +368,15 @@
   display: block;
   cursor: crosshair;
   touch-action: none;
+}
+
+.canvas-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  pointer-events: none;
 }
 
 .tools {
@@ -374,6 +389,11 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.shape-tooltip {
+  font-size: 1rem;
+  color: var(--muted);
 }
 
 .label {

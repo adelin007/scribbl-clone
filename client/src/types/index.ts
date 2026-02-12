@@ -112,16 +112,34 @@ export interface JoinRoomData {
   playerData: PlayerData;
 }
 
-export type Tool = "brush" | "eraser" | "bucket";
-export interface DrawDataPoint {
+export type ShapeType = "circle" | "triangle" | "rectangle";
+export type Tool = "brush" | "eraser" | "bucket" | "shape";
+
+export interface DrawStrokeDataPoint {
   roomId: string;
   playerId: string;
-  tool: Tool;
+  tool: "brush" | "eraser" | "bucket";
   size: number;
   color: string;
   x: number;
   y: number;
   timestamp: string; // ISO timestamp
 }
+
+export interface DrawShapeDataPoint {
+  roomId: string;
+  playerId: string;
+  tool: "shape";
+  size: number;
+  color: string;
+  shape: {
+    kind: ShapeType;
+    start: { x: number; y: number };
+    end: { x: number; y: number };
+  };
+  timestamp: string; // ISO timestamp
+}
+
+export type DrawDataPoint = DrawStrokeDataPoint | DrawShapeDataPoint;
 
 export type DrawDataUpdateType = "DRAW" | "CLEAR";
