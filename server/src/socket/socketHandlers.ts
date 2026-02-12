@@ -165,9 +165,9 @@ export function setupSocket(io: Server) {
         action: DrawDataUpdateType;
         drawingData: DrawDataPoint;
       }) => {
-        console.log(
-          `Received drawing data from player ${data.playerId} in room ${data.roomId}, drawingData: ${JSON.stringify(data.drawingData)}`,
-        );
+        // console.log(
+        //   `Received drawing data from player ${data.playerId} in room ${data.roomId}, drawingData: ${JSON.stringify(data.drawingData)}`,
+        // );
         const newRoomData = handleDrawingAction(
           data.roomId,
           data.playerId,
