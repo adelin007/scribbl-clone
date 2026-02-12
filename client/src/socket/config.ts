@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import type { PlayerData } from "../types";
+import type { ChangeRoomSettingsData, GameEvent, PlayerData } from "../types";
 
 const URL = "http://localhost:3000";
 
@@ -12,15 +12,7 @@ export type ClientConnectionEvent =
   | "disconnected"
   | "error";
 
-export type ClientActionEvent =
-  | "joinRoom"
-  | "createRoom"
-  | "leaveRoom"
-  | "startGame"
-  | "draw"
-  | "guess"
-  | "changeSettings"
-  | "wordSelect";
+export type ClientActionEvent = GameEvent;
 
 export type ClientEvent = ClientConnectionEvent | ClientActionEvent;
 
@@ -79,8 +71,16 @@ export const joinRoom = (data?: unknown) => {
   emitClientAction("joinRoom", data);
 };
 
-export const createRoom = (data?: PlayerData) => {
+interface CreateRoomData extends PlayerData {
+  drawTime: number;
+  rounds: number;
+}
+export const createRoom = (data?: CreateRoomData) => {
   emitClientAction("createRoom", data);
+};
+
+export const changeRoomSettings = (data: ChangeRoomSettingsData) => {
+  emitClientAction("changeRoomSettings", data);
 };
 
 export const leaveRoom = (data?: unknown) => {
@@ -117,4 +117,8 @@ socket.on("disconnect", (reason) => {
 
 socket.on("connect_error", (error) => {
   emitClientEvent("error", { error });
+});
+
+socket.on("roomCreated", (data) => {
+  emitClientEvent("roomCreated", { data });
 });

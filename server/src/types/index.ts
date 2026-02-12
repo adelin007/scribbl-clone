@@ -5,6 +5,7 @@ export enum GameEvent {
   CONNECT_ERROR = "connect_error",
   JOIN_ROOM = "joinRoom",
   CREATE_ROOM = "createRoom",
+  CHANGE_ROOM_SETTINGS = "changeRoomSettings",
   LEAVE_ROOM = "leaveRoom",
   START_GAME = "startGame",
   DRAW = "draw",
@@ -13,6 +14,7 @@ export enum GameEvent {
   WORD_SELECT = "wordSelect",
 
   // Server events
+  ROOM_CREATED = "roomCreated",
   JOINED_ROOM = "joinedRoom",
   LEFT_ROOM = "leftRoom",
   GAME_STARTED = "gameStarted",
@@ -34,7 +36,27 @@ export interface PlayerData {
 
 export interface Player extends PlayerData {
   id: string;
-  score: boolean;
+  score: number;
   guessed: boolean;
   guessedAt: string | null; // ISO timestamp
+}
+
+export interface Room {
+  id: string;
+  hostId: string;
+  socketId: string;
+  players: Player[];
+  settings: RoomSettings;
+}
+
+export interface RoomSettings {
+  maxPlayers: number;
+  drawTime: number; // in seconds
+  roundTime: number; // in seconds
+  rounds: number;
+}
+
+export interface ClientCreateRoomData extends PlayerData {
+  drawTime: number;
+  rounds: number;
 }

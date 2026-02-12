@@ -1,11 +1,11 @@
 import type { Server } from "socket.io";
-import { GameEvent, type PlayerData } from "../types/index.ts";
-
-type GameRoomData = {
-  id: string;
-};
-
-const gameRoom: GameRoomData = { id: "" };
+import {
+  GameEvent,
+  type ClientCreateRoomData,
+  type PlayerData,
+  type RoomSettings,
+} from "../types/index.ts";
+import { changeRoomSettings, createRoom } from "../game/roomController.ts";
 
 export function setupSocket(io: Server) {
   io.on(GameEvent.CONNECT, (socket) => {
@@ -14,10 +14,30 @@ export function setupSocket(io: Server) {
       console.log(`${playerData.name} joined the room`);
     });
 
-    socket.on(GameEvent.CREATE_ROOM, async (playerData: PlayerData) => {
-      gameRoom.id = socket.id; // For simplicity, using socket ID as room ID. In production, you'd want a more robust solution.
-      console.log(`${playerData.name} created the room`);
-      console.log("GAME_ROOM: ", gameRoom);
+    socket.on(GameEvent.CREATE_ROOM, async (data: ClientCreateRoomData) => {
+      const newRoom = createRoom({
+        host: {
+          name: data.name,
+          color: data.color,
+        },
+        socketId: socket.id,
+        settings: {
+          maxPlayers: 8, // Default max players, can be made dynamic later
+          roundTime: 60, // Default round time, can be made dynamic later
+          drawTime: data.drawTime,
+          rounds: data.rounds,
+        },
+      });
+      console.log(`${data.name} created the room`);
+      console.log("GAME_ROOM: ", newRoom);
+      socket.emit(GameEvent.ROOM_CREATED, newRoom);
     });
+
+    socket.on(
+      GameEvent.CHANGE_ROOM_SETTINGS,
+      async (data: { roomId: string; newSettings: Partial<RoomSettings> }) => {
+        changeRoomSettings(data.roomId, data.newSettings);
+      },
+    );
   });
 }

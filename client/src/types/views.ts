@@ -5,11 +5,15 @@ export type StartViewProps = {
   playerColor: string;
   createDisabled: boolean;
   isGuest: boolean;
+  drawTime: string;
+  rounds: string;
   title: string;
   subtitle: string;
   actionLabel: string;
   onNameChange: (value: string) => void;
   onColorChange: (value: string) => void;
+  onDrawTimeChange: (value: string) => void;
+  onRoundsChange: (value: string) => void;
   onCreate: () => void;
 };
 

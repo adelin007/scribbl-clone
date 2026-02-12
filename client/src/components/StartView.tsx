@@ -5,11 +5,15 @@ export const StartView = ({
   playerColor,
   createDisabled,
   isGuest,
+  drawTime,
+  rounds,
   title,
   subtitle,
   actionLabel,
   onNameChange,
   onColorChange,
+  onDrawTimeChange,
+  onRoundsChange,
   onCreate,
 }: StartViewProps) => {
   const palette = [
@@ -56,6 +60,37 @@ export const StartView = ({
               <span className="field-error">Please select a color.</span>
             )}
           </label>
+
+          {!isGuest && (
+            <>
+              <label className="field">
+                <span>Draw time</span>
+                <select
+                  value={drawTime}
+                  onChange={(event) => onDrawTimeChange(event.target.value)}
+                >
+                  <option value="">Select</option>
+                  <option value="60">60s</option>
+                  <option value="80">80s</option>
+                  <option value="100">100s</option>
+                  <option value="120">120s</option>
+                </select>
+              </label>
+
+              <label className="field">
+                <span>Rounds</span>
+                <select
+                  value={rounds}
+                  onChange={(event) => onRoundsChange(event.target.value)}
+                >
+                  <option value="">Select</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                </select>
+              </label>
+            </>
+          )}
         </div>
 
         <button

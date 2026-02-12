@@ -3,7 +3,14 @@ import { GameView } from "./components/GameView";
 import { LobbyView } from "./components/LobbyView";
 import { ResultsView } from "./components/ResultsView";
 import { StartView } from "./components/StartView";
-import { connectSocket, createRoom, disconnectSocket } from "./socket/config";
+import {
+  changeRoomSettings,
+  connectSocket,
+  createRoom,
+  disconnectSocket,
+  onClientEvent,
+} from "./socket/config";
+import type { Room } from "./types";
 import type { GameState } from "./types/views";
 import "./App.css";
 
@@ -27,10 +34,10 @@ function App() {
   const playerCount = 1;
   const maxPlayers = 8;
   const startDisabled = isHost && (!drawTime || !rounds);
-  const createDisabled = playerName.length === 0 || playerColor.length === 0;
-
-  const buildRoomId = (name: string) =>
-    name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const createDisabled =
+    playerName.length === 0 ||
+    playerColor.length === 0 ||
+    (isHost && (!drawTime || !rounds));
 
   const buildInviteUrl = (id: string) =>
     `${window.location.origin}${window.location.pathname}?roomId=${encodeURIComponent(
@@ -47,11 +54,12 @@ function App() {
 
   const handleCreateRoom = async () => {
     if (createDisabled) return;
-    const newRoomId = buildRoomId(playerName);
-    createRoom({ name: playerName, color: playerColor });
-    setRoomId(newRoomId);
-    await copyToClipboard(buildInviteUrl(newRoomId));
-    setGameState("lobby");
+    createRoom({
+      name: playerName,
+      color: playerColor,
+      drawTime: Number(drawTime),
+      rounds: Number(rounds),
+    });
   };
 
   const handleJoinRoom = () => {
@@ -71,10 +79,50 @@ function App() {
     }, 2000);
   };
 
+  const handleLobbyDrawTimeChange = (value: string) => {
+    setDrawTime(value);
+    if (!value) return;
+    changeRoomSettings({
+      roomId,
+      newSettings: {
+        maxPlayers,
+        drawTime: Number(value),
+        roundTime: Number(value),
+        rounds: rounds ? Number(rounds) : undefined,
+      },
+    });
+  };
+
+  const handleLobbyRoundsChange = (value: string) => {
+    setRounds(value);
+    if (!value) return;
+    changeRoomSettings({
+      roomId,
+      newSettings: {
+        maxPlayers,
+        drawTime: drawTime ? Number(drawTime) : undefined,
+        roundTime: drawTime ? Number(drawTime) : undefined,
+        rounds: Number(value),
+      },
+    });
+  };
+
   useEffect(() => {
     connectSocket();
 
+    const unsubscribeRoomCreated = onClientEvent("roomCreated", (payload) => {
+      console.log("Room created with payload: ", payload);
+      const room = payload?.data as Room | undefined;
+      if (!room) return;
+      setRoomId(room.id);
+      setDrawTime(String(room.settings.drawTime ?? ""));
+      setRounds(String(room.settings.rounds ?? ""));
+      void copyToClipboard(buildInviteUrl(room.id));
+      setGameState("lobby");
+    });
+
     return () => {
+      unsubscribeRoomCreated();
       disconnectSocket();
       if (inviteTimeoutRef.current) {
         window.clearTimeout(inviteTimeoutRef.current);
@@ -96,6 +144,8 @@ function App() {
             playerColor={playerColor}
             createDisabled={createDisabled}
             isGuest={isGuest}
+            drawTime={drawTime}
+            rounds={rounds}
             title={isGuest ? "Join Room" : "Create a Private Room"}
             subtitle={
               isGuest
@@ -105,6 +155,8 @@ function App() {
             actionLabel={isGuest ? "Continue" : "Create Private Room"}
             onNameChange={setPlayerName}
             onColorChange={setPlayerColor}
+            onDrawTimeChange={setDrawTime}
+            onRoundsChange={setRounds}
             onCreate={isGuest ? handleJoinRoom : handleCreateRoom}
           />
         )}
@@ -123,8 +175,8 @@ function App() {
             showStartTooltip={showStartTooltip}
             inviteCopied={inviteCopied}
             roomId={roomId}
-            onDrawTimeChange={setDrawTime}
-            onRoundsChange={setRounds}
+            onDrawTimeChange={handleLobbyDrawTimeChange}
+            onRoundsChange={handleLobbyRoundsChange}
             onHoverStart={(isHovering) => setShowStartTooltip(isHovering)}
             onStart={() => setGameState("game")}
             onInvite={handleInvite}
