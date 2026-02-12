@@ -87,6 +87,7 @@ export interface GameState {
   currentRound: number;
   currentDrawerId: string | null;
   currentWord: string | null;
+  wordChoices: string[]; // 3 random words for drawer to choose from
   hintLetters: HintLetters[];
   roomState: RoomState;
   timerStartedAt: string | null; // ISO timestamp

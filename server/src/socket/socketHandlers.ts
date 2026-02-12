@@ -19,6 +19,7 @@ import {
   handleDrawingAction,
   handleGuess,
   handlePlayerLeft,
+  handleWordSelect,
   startGame,
 } from "../game/gameController.ts";
 
@@ -188,6 +189,26 @@ export function setupSocket(io: Server) {
         io.to(updatedRoom.id).emit(GameEvent.GAME_STARTED, updatedRoom);
       },
     );
+
+    socket.on(
+      GameEvent.WORD_SELECT,
+      async (data: {
+        roomId: Room["id"];
+        playerId: Player["id"];
+        word: string;
+      }) => {
+        console.log(
+          `Player ${data.playerId} selected word in room ${data.roomId}`,
+        );
+        const updatedRoom = handleWordSelect(
+          data.roomId,
+          data.playerId,
+          data.word,
+        );
+        io.to(updatedRoom.id).emit(GameEvent.WORD_SELECTED, updatedRoom);
+      },
+    );
+
     socket.on(
       GameEvent.GUESS_MADE,
       async (data: {

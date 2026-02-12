@@ -63,17 +63,17 @@ const transitionState = (room: Room, nextState: RoomState): void => {
     const nextDrawerIndex = (currentDrawerIndex + 1) % room.players.length;
     room.gameState.currentDrawerId = room.players[nextDrawerIndex]?.id ?? null;
 
-    // Select new word
-    room.gameState.currentWord = getRandomWord();
+    // Clear current word and provide new word choices
+    room.gameState.currentWord = null;
+    room.gameState.wordChoices = getRandomWords(3);
 
     // Increment round if we've cycled through all players
     if (nextDrawerIndex === 0) {
       room.gameState.currentRound += 1;
     }
 
-    // Transition to PLAYER_CHOOSE_WORD (or DRAWING since we auto-select word)
+    // Transition to PLAYER_CHOOSE_WORD and wait for drawer to select
     room.gameState.roomState = RoomState.PLAYER_CHOOSE_WORD;
-    transitionState(room, RoomState.DRAWING);
   }
 };
 
@@ -91,6 +91,11 @@ const words = [
 export const getRandomWord = () => {
   const randomIndex = Math.floor(Math.random() * words.length);
   return words[randomIndex] ?? null;
+};
+
+export const getRandomWords = (count: number = 3): string[] => {
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, words.length));
 };
 
 //TODO - implement database to store rooms and players, for now we will use an in-memory store
@@ -135,6 +140,7 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     currentRound: 1,
     currentDrawerId: firstDrawer.id,
     currentWord: null,
+    wordChoices: getRandomWords(3),
     hintLetters: [],
     guesses: [],
     roomState: RoomState.PLAYER_CHOOSE_WORD,
@@ -142,8 +148,34 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     drawingData: [],
   };
 
-  // Auto-select word and transition to DRAWING
-  room.gameState.currentWord = getRandomWord();
+  return room;
+};
+
+export const handleWordSelect = (
+  roomId: Room["id"],
+  playerId: Player["id"],
+  selectedWord: string,
+) => {
+  const room = getRoomById(roomId);
+  if (!room) {
+    throw new Error("Room not found");
+  }
+  if (!room.gameState) {
+    throw new Error("Game state not found");
+  }
+  if (room.gameState.roomState !== RoomState.PLAYER_CHOOSE_WORD) {
+    throw new Error("Game is not in word selection state");
+  }
+  if (room.gameState.currentDrawerId !== playerId) {
+    throw new Error("Only the current drawer can select a word");
+  }
+  if (!room.gameState.wordChoices.includes(selectedWord)) {
+    throw new Error("Invalid word selection");
+  }
+
+  // Set the selected word and transition to DRAWING
+  room.gameState.currentWord = selectedWord;
+  room.gameState.wordChoices = [];
   transitionState(room, RoomState.DRAWING);
 
   return room;

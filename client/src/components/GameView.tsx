@@ -2,12 +2,14 @@ import { Paintbrush, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   onClientEvent,
+  selectWord,
   sendDrawingData,
   sendGuess,
   socket,
 } from "../socket/config";
 import {
   GameEvent,
+  RoomState,
   type DrawDataPoint,
   type DrawDataUpdateType,
   type Room,
@@ -28,6 +30,10 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const [brushSize, setBrushSize] = useState(8);
   const [brushColor, setBrushColor] = useState("#2f2a24");
   const [guessInput, setGuessInput] = useState("");
+  const [roundEndDialog, setRoundEndDialog] = useState<{
+    show: boolean;
+    word: string;
+  }>({ show: false, word: "" });
   const [activeTool, setActiveTool] = useState<
     "brush" | "bucket" | "eraser" | "circle" | "triangle" | "rectangle"
   >("brush");
@@ -53,6 +59,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     new Map<string, { x: number; y: number; timestamp: number }>(),
   );
   const pendingDrawingDataRef = useRef<DrawDataPoint[] | null>(null);
+  const previousWordRef = useRef<string>("");
   const gamePlayers = room?.players?.length
     ? room.players
     : [
@@ -572,10 +579,27 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     };
   }, []);
 
+  // Track the current word so we can show it when the round ends
+  useEffect(() => {
+    if (room?.gameState?.currentWord) {
+      previousWordRef.current = room.gameState.currentWord;
+    }
+  }, [room?.gameState?.currentWord]);
+
   useEffect(() => {
     const unsubscribe = onClientEvent(GameEvent.ROUND_STARTED, (payload) => {
       const roomData = payload?.data as Room | undefined;
       if (!roomData) return;
+
+      // Show dialog with the previous word
+      if (previousWordRef.current) {
+        setRoundEndDialog({ show: true, word: previousWordRef.current });
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+          setRoundEndDialog({ show: false, word: "" });
+        }, 3000);
+      }
+
       // Clear the canvas when a new round starts
       clearCanvas();
     });
@@ -671,6 +695,135 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
 
   return (
     <section className="view game-view">
+      {roundEndDialog.show && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setRoundEndDialog({ show: false, word: "" })}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "2rem 3rem",
+              borderRadius: "0.5rem",
+              textAlign: "center",
+              maxWidth: "500px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginTop: 0, color: "#2f2a24" }}>Round Ended!</h2>
+            <p style={{ fontSize: "1.2rem", margin: "1rem 0" }}>
+              The word was:{" "}
+              <strong style={{ color: "#4f86c6", fontSize: "1.5rem" }}>
+                {roundEndDialog.word}
+              </strong>
+            </p>
+            <button
+              style={{
+                marginTop: "1rem",
+                padding: "0.5rem 1.5rem",
+                backgroundColor: "#4f86c6",
+                color: "white",
+                border: "none",
+                borderRadius: "0.25rem",
+                cursor: "pointer",
+                fontSize: "1rem",
+              }}
+              onClick={() => setRoundEndDialog({ show: false, word: "" })}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
+
+      {room?.gameState?.roomState === RoomState.PLAYER_CHOOSE_WORD &&
+        isDrawingAllowed &&
+        room?.gameState?.wordChoices &&
+        room.gameState.wordChoices.length > 0 && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                backgroundColor: "white",
+                padding: "2rem 3rem",
+                borderRadius: "0.5rem",
+                textAlign: "center",
+                maxWidth: "600px",
+              }}
+            >
+              <h2 style={{ marginTop: 0, color: "#2f2a24" }}>
+                Choose a word to draw
+              </h2>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  marginTop: "2rem",
+                  justifyContent: "center",
+                }}
+              >
+                {room.gameState.wordChoices.map((word) => (
+                  <button
+                    key={word}
+                    style={{
+                      padding: "1rem 2rem",
+                      backgroundColor: "#4f86c6",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "0.5rem",
+                      cursor: "pointer",
+                      fontSize: "1.2rem",
+                      fontWeight: "600",
+                      transition: "transform 0.1s, background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.05)";
+                      e.currentTarget.style.backgroundColor = "#3a6fa0";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.backgroundColor = "#4f86c6";
+                    }}
+                    onClick={() => {
+                      if (!activeRoomId || !localPlayerId) return;
+                      selectWord({
+                        roomId: activeRoomId,
+                        playerId: localPlayerId,
+                        word,
+                      });
+                    }}
+                  >
+                    {word}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
       <div className="game-topbar panel">
         <div>
           <strong>Round 1</strong>

@@ -130,6 +130,14 @@ export const sendGuess = (data: {
   emitClientAction(GameEvent.GUESS_MADE, data);
 };
 
+export const selectWord = (data: {
+  roomId: Room["id"];
+  playerId: Player["id"];
+  word: string;
+}) => {
+  emitClientAction(GameEvent.WORD_SELECT, data);
+};
+
 socket.on("connect", () => {
   emitClientEvent("connected");
 });
@@ -176,6 +184,10 @@ socket.on(GameEvent.GUESS_MADE, (data) => {
 
 socket.on(GameEvent.ROUND_STARTED, (data: Room) => {
   emitClientEvent(GameEvent.ROUND_STARTED, { data });
+});
+
+socket.on(GameEvent.WORD_SELECTED, (data: Room) => {
+  emitClientEvent(GameEvent.WORD_SELECTED, { data });
 });
 
 socket.on("error", (error: { error: string }) => {

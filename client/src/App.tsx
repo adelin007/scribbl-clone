@@ -228,6 +228,15 @@ function App() {
       },
     );
 
+    const unsubscribeWordSelected = onClientEvent(
+      GameEvent.WORD_SELECTED,
+      (payload) => {
+        const room = payload?.data as Room | undefined;
+        if (!room) return;
+        setRoom(room);
+      },
+    );
+
     const unsubscribeGameEnded = onClientEvent(
       GameEvent.GAME_ENDED,
       (payload) => {
@@ -255,6 +264,7 @@ function App() {
       unsubscribeGameStarted();
       unsubscribeGuessMade();
       unsubscribeRoundStarted();
+      unsubscribeWordSelected();
       unsubscribeGameEnded();
       disconnectSocket();
       if (inviteTimeoutRef.current) {
