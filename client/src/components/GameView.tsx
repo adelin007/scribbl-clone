@@ -720,12 +720,16 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             />
             <canvas ref={previewCanvasRef} className="canvas-preview" />
           </div>
-          <div className="tools">
+          <div
+            className="tools"
+            style={{ opacity: isDrawingAllowed ? 1 : 0.5 }}
+          >
             <div className="tool-row">
               <button
                 type="button"
                 className={`btn secondary toggle ${activeTool === "brush" ? "active" : ""}`}
                 onClick={() => setActiveTool("brush")}
+                disabled={!isDrawingAllowed}
               >
                 <Paintbrush size={16} />
                 Brush
@@ -750,7 +754,11 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 Eraser
               </button>
               */}
-              <button className="btn secondary" onClick={handleClear}>
+              <button
+                className="btn secondary"
+                onClick={handleClear}
+                disabled={!isDrawingAllowed}
+              >
                 <Trash2 size={16} />
                 Clear
               </button>
@@ -761,6 +769,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 type="button"
                 className={`btn secondary toggle ${activeTool === "circle" ? "active" : ""}`}
                 onClick={() => setActiveTool("circle")}
+                disabled={!isDrawingAllowed}
               >
                 Circle
               </button>
@@ -768,6 +777,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 type="button"
                 className={`btn secondary toggle ${activeTool === "rectangle" ? "active" : ""}`}
                 onClick={() => setActiveTool("rectangle")}
+                disabled={!isDrawingAllowed}
               >
                 Rectangle
               </button>
@@ -775,6 +785,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 type="button"
                 className={`btn secondary toggle ${activeTool === "triangle" ? "active" : ""}`}
                 onClick={() => setActiveTool("triangle")}
+                disabled={!isDrawingAllowed}
               >
                 Triangle
               </button>
@@ -791,6 +802,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                     type="button"
                     className={`brush-dot ${index === 0 ? "small" : ""} ${index === 2 ? "large" : ""} ${brushSize === size ? "selected" : ""}`}
                     onClick={() => setBrushSize(size)}
+                    disabled={!isDrawingAllowed}
                     aria-label={`Brush size ${size}`}
                   />
                 ))}
@@ -806,6 +818,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                     className={`color ${brushColor === color ? "selected" : ""}`}
                     style={{ backgroundColor: color }}
                     onClick={() => setBrushColor(color)}
+                    disabled={!isDrawingAllowed}
                     aria-label={`Select color ${color}`}
                   />
                 ))}
@@ -839,7 +852,21 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
               );
             })}
           </div>
-          {!isDrawingAllowed && (
+          {!isDrawingAllowed && localPlayer?.guessed && (
+            <div
+              className="chat-input"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#22c55e",
+                fontWeight: "600",
+              }}
+            >
+              Congrats, you guessed!
+            </div>
+          )}
+          {!isDrawingAllowed && !localPlayer?.guessed && (
             <input
               className="chat-input"
               type="text"

@@ -92,6 +92,9 @@ export const handleGuess = (
   if (room.gameState?.roomState !== RoomState.DRAWING) {
     throw new Error("Game is not currently in drawing state");
   }
+  if (player.guessed) {
+    throw new Error("Player has already guessed correctly");
+  }
   const correct =
     guess.toLowerCase() === room.gameState.currentWord?.toLowerCase();
   const guessItem = {
