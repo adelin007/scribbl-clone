@@ -57,6 +57,42 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
   return room;
 };
 
+export const handlePlayerLeft = (
+  roomId: Room["id"],
+  playerId: Player["id"],
+) => {
+  const room = getRoomById(roomId);
+  if (!room) {
+    throw new Error("Room not found");
+  }
+  const playerIndex = room.players.findIndex((p) => p.id === playerId);
+  if (playerIndex === -1) {
+    throw new Error("Player not found in the room");
+  }
+  const wasHost = room.players?.[playerIndex]?.isHost;
+  room.players.splice(playerIndex, 1);
+  // If the host left, assign a new host if there are still players left
+  if (wasHost && room.players.length > 0) {
+    if (room.players.length === 0) {
+      // No players left, end the game
+      room.gameState = null;
+    } else {
+      // Assign a new drawer (for simplicity, we just pick the next player in the list)
+      const newDrawerId = room.players?.[0]?.id ?? null;
+      if (!newDrawerId) {
+        room.gameState = null; // No players left, end the game
+        throw new Error("No players left to assign as drawer");
+      }
+      if (room.gameState) {
+        room.gameState.currentDrawerId = newDrawerId;
+        room.gameState.roomState = RoomState.PLAYER_CHOOSE_WORD; // Move back to word selection phase
+      }
+    }
+  }
+
+  return room;
+};
+
 export const handleDrawingAction = (
   roomId: Room["id"],
   playerId: Player["id"],

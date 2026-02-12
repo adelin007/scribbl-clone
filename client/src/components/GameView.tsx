@@ -1,4 +1,4 @@
-import { Eraser, Paintbrush, PaintBucket, Trash2 } from "lucide-react";
+import { Paintbrush, PaintBucket, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onClientEvent, sendDrawingData } from "../socket/config";
 import {
@@ -514,6 +514,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 <PaintBucket size={16} />
                 Bucket
               </button>
+              {/*
               <button
                 type="button"
                 className={`btn secondary toggle ${activeTool === "eraser" ? "active" : ""}`}
@@ -522,6 +523,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 <Eraser size={16} />
                 Eraser
               </button>
+              */}
               <button className="btn secondary" onClick={handleClear}>
                 <Trash2 size={16} />
                 Clear
