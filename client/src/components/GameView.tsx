@@ -1,6 +1,6 @@
 import { Paintbrush, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { onClientEvent, sendDrawingData } from "../socket/config";
+import { onClientEvent, sendDrawingData, socket } from "../socket/config";
 import {
   GameEvent,
   type DrawDataPoint,
@@ -51,6 +51,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     : [
         {
           id: "local",
+          socketId: "local",
           name: playerName || "Player",
           color: playerColor || "#4f86c6",
           score: 0,
@@ -58,9 +59,11 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
           guessedAt: null,
         },
       ];
-  const localPlayer = room?.players?.find(
-    (player) => player.name === playerName && player.color === playerColor,
-  );
+  const localPlayer =
+    room?.players?.find((player) => player.socketId === socket.id) ??
+    room?.players?.find(
+      (player) => player.name === playerName && player.color === playerColor,
+    );
   const isDrawingAllowed = Boolean(
     room?.gameState?.currentDrawerId &&
     localPlayer?.id === room.gameState.currentDrawerId,

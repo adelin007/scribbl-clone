@@ -14,9 +14,30 @@ export const getRoomById = (roomId: string): Room | undefined => {
   return Array.from(rooms).find((r) => r.id === roomId);
 };
 
+export const getRoomBySocketId = (socketId: string): Room | undefined => {
+  return Array.from(rooms).find((r) => r.socketId === socketId);
+};
+
+export const getRoomByPlayerSocketId = (socketId: string): Room | undefined => {
+  return Array.from(rooms).find((room) =>
+    room.players.some((player) => player.socketId === socketId),
+  );
+};
+
+export const getAllRooms = (): Room[] => {
+  return Array.from(rooms);
+};
+
+export const deleteRoom = (roomId: string) => {
+  const room = getRoomById(roomId);
+  if (room) {
+    rooms.delete(room);
+  }
+};
+
 export const createRoom = (data: CreateRoomData) => {
   console.log("Creating room with data: ", data);
-  const newPlayer: Player = createPlayer(data.host, true);
+  const newPlayer: Player = createPlayer(data.host, data.socketId, true);
   const newRoom: Room = {
     id: crypto.randomUUID(),
     hostId: newPlayer.id,
@@ -30,12 +51,16 @@ export const createRoom = (data: CreateRoomData) => {
   return newRoom;
 };
 
-export const joinRoom = (roomId: string, playerData: PlayerData) => {
+export const joinRoom = (
+  roomId: string,
+  playerData: PlayerData,
+  socketId: string,
+) => {
   const room = Array.from(rooms).find((r) => r.id === roomId);
   if (!room) {
     throw new Error("Room not found");
   }
-  const newPlayer: Player = createPlayer(playerData, false);
+  const newPlayer: Player = createPlayer(playerData, socketId, false);
   room.players.push(newPlayer);
   return room;
 };

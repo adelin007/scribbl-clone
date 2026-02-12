@@ -12,13 +12,60 @@ import {
 import {
   changeRoomSettings,
   createRoom,
+  getRoomByPlayerSocketId,
   joinRoom,
 } from "../game/roomController.ts";
-import { handleDrawingAction, startGame } from "../game/gameController.ts";
+import {
+  handleDrawingAction,
+  handlePlayerLeft,
+  startGame,
+} from "../game/gameController.ts";
 
 export function setupSocket(io: Server) {
   io.on(GameEvent.CONNECT, (socket) => {
     console.log("a user connected: ", socket.id);
+    socket.on(GameEvent.DISCONNECT, () => {
+      console.log(
+        `Socket ${socket.id} disconnected, checking for associated room and player...`,
+      );
+      const room = getRoomByPlayerSocketId(socket.id);
+      const player = room?.players.find(
+        (roomPlayer) => roomPlayer.socketId === socket.id,
+      );
+      console.log("ROOM_LEFT: ", room);
+      console.log("PLAYER_LEFT: ", player);
+
+      if (room && player) {
+        try {
+          const result = handlePlayerLeft(room.id, player.id);
+          if (result.room) {
+            io.to(result.room.id).emit(GameEvent.PLAYER_LEFT, result.room);
+            if (result.hostLeft) {
+              io.to(result.room.id).emit(GameEvent.GAME_ENDED, {
+                roomId: result.room.id,
+                reason: "hostLeft",
+              });
+            }
+          } else if (result.hostLeft) {
+            io.to(room.id).emit(GameEvent.GAME_ENDED, {
+              roomId: room.id,
+              reason: "hostLeft",
+            });
+          } else if (result.notEnoughPlayers) {
+            io.to(room.id).emit(GameEvent.GAME_ENDED, {
+              roomId: room.id,
+              reason: "notEnoughPlayers",
+            });
+          }
+        } catch (error) {
+          console.warn(
+            `Error handling disconnect for player ${player.id} in room ${room.id}: `,
+            error,
+          );
+        }
+      }
+      console.log("user disconnected: ", socket.id);
+    });
     socket.on(GameEvent.JOIN_ROOM, async (playerData: PlayerData) => {
       console.log(`${playerData.name} joined the room`);
     });
@@ -47,7 +94,9 @@ export function setupSocket(io: Server) {
       GameEvent.JOIN_ROOM,
       async (data: { roomId: string; playerData: PlayerData }) => {
         try {
-          const updatedRoom = joinRoom(data.roomId, data.playerData);
+          const updatedRoom = joinRoom(data.roomId, data.playerData, socket.id);
+          const joinedPlayer =
+            updatedRoom.players[updatedRoom.players.length - 1];
           socket.join(updatedRoom.id);
           io.to(updatedRoom.id).emit(GameEvent.PLAYER_JOINED, updatedRoom);
           socket.emit(GameEvent.JOINED_ROOM, updatedRoom);
@@ -59,6 +108,46 @@ export function setupSocket(io: Server) {
         }
       },
     );
+
+    socket.on(GameEvent.LEAVE_ROOM, async () => {
+      const room = getRoomByPlayerSocketId(socket.id);
+      const player = room?.players.find(
+        (roomPlayer) => roomPlayer.socketId === socket.id,
+      );
+      if (!room || !player) return;
+      try {
+        const result = handlePlayerLeft(room.id, player.id);
+        if (result.room) {
+          io.to(result.room.id).emit(GameEvent.PLAYER_LEFT, result.room);
+          if (result.hostLeft) {
+            io.to(result.room.id).emit(GameEvent.GAME_ENDED, {
+              roomId: result.room.id,
+              reason: "hostLeft",
+            });
+          } else if (result.notEnoughPlayers) {
+            io.to(result.room.id).emit(GameEvent.GAME_ENDED, {
+              roomId: result.room.id,
+              reason: "notEnoughPlayers",
+            });
+          }
+        } else if (result.hostLeft) {
+          io.to(room.id).emit(GameEvent.GAME_ENDED, {
+            roomId: room.id,
+            reason: "hostLeft",
+          });
+        } else if (result.notEnoughPlayers) {
+          io.to(room.id).emit(GameEvent.GAME_ENDED, {
+            roomId: room.id,
+            reason: "notEnoughPlayers",
+          });
+        }
+      } catch (error) {
+        console.warn(
+          `Error handling leaveRoom for player ${player.id} in room ${room.id}: `,
+          error,
+        );
+      }
+    });
 
     socket.on(
       GameEvent.CHANGE_ROOM_SETTINGS,

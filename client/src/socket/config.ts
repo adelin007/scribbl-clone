@@ -88,8 +88,8 @@ export const changeRoomSettings = (data: ChangeRoomSettingsData) => {
   emitClientAction("changeRoomSettings", data);
 };
 
-export const leaveRoom = (data?: unknown) => {
-  emitClientAction("leaveRoom", data);
+export const leaveRoom = () => {
+  emitClientAction(GameEvent.LEAVE_ROOM);
 };
 
 export const startGame = (data?: unknown) => {
@@ -145,10 +145,18 @@ socket.on(GameEvent.PLAYER_JOINED, (data: Room) => {
   emitClientEvent(GameEvent.PLAYER_JOINED, { data });
 });
 
+socket.on(GameEvent.PLAYER_LEFT, (data: Room) => {
+  emitClientEvent(GameEvent.PLAYER_LEFT, { data });
+});
+
 socket.on(GameEvent.GAME_STARTED, (data: Room) => {
   emitClientEvent(GameEvent.GAME_STARTED, { data });
 });
 
 socket.on(GameEvent.UPDATED_DRAWING_DATA, (data: Room) => {
   emitClientEvent(GameEvent.UPDATED_DRAWING_DATA, { data });
+});
+
+socket.on(GameEvent.GAME_ENDED, (data) => {
+  emitClientEvent(GameEvent.GAME_ENDED, { data });
 });

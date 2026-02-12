@@ -49,5 +49,6 @@ export type GameViewProps = {
 
 export type ResultsViewProps = {
   playerName: string;
-  onBackToLobby: () => void;
+  message?: string;
+  onBackToStart: () => void;
 };

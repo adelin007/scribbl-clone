@@ -6,16 +6,18 @@ import {
   type PlayerData,
   type Room,
 } from "../types/index.ts";
-import { getRoomById, rooms } from "./roomController.ts";
+import { deleteRoom, getRoomById, rooms } from "./roomController.ts";
 
 //TODO - implement database to store rooms and players, for now we will use an in-memory store
 const players: Set<Player> = new Set();
 export const createPlayer = (
   playerData: PlayerData,
+  socketId: string,
   isHost: boolean,
 ): Player => {
   const newPlayer: Player = {
     id: crypto.randomUUID(),
+    socketId,
     isHost,
     name: playerData.name,
     color: playerData.color,
@@ -69,28 +71,40 @@ export const handlePlayerLeft = (
   if (playerIndex === -1) {
     throw new Error("Player not found in the room");
   }
-  const wasHost = room.players?.[playerIndex]?.isHost;
+  const removedPlayer = room.players[playerIndex];
+  const wasHost = removedPlayer?.isHost;
   room.players.splice(playerIndex, 1);
-  // If the host left, assign a new host if there are still players left
-  if (wasHost && room.players.length > 0) {
-    if (room.players.length === 0) {
-      // No players left, end the game
-      room.gameState = null;
-    } else {
-      // Assign a new drawer (for simplicity, we just pick the next player in the list)
-      const newDrawerId = room.players?.[0]?.id ?? null;
-      if (!newDrawerId) {
-        room.gameState = null; // No players left, end the game
-        throw new Error("No players left to assign as drawer");
-      }
-      if (room.gameState) {
-        room.gameState.currentDrawerId = newDrawerId;
-        room.gameState.roomState = RoomState.PLAYER_CHOOSE_WORD; // Move back to word selection phase
-      }
-    }
+
+  if (wasHost) {
+    room.gameState = null;
+    deleteRoom(room.id);
+    return {
+      room,
+      removedPlayer,
+      hostLeft: true,
+      notEnoughPlayers: false,
+      roomDeleted: true,
+    };
   }
 
-  return room;
+  if (room.players.length < 2) {
+    deleteRoom(room.id);
+    return {
+      room: null,
+      removedPlayer,
+      hostLeft: false,
+      notEnoughPlayers: true,
+      roomDeleted: true,
+    };
+  }
+
+  return {
+    room,
+    removedPlayer,
+    hostLeft: false,
+    notEnoughPlayers: false,
+    roomDeleted: false,
+  };
 };
 
 export const handleDrawingAction = (

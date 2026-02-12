@@ -9,10 +9,11 @@ import {
   createRoom,
   disconnectSocket,
   joinRoom,
+  leaveRoom,
   onClientEvent,
   startGame,
 } from "./socket/config";
-import { GameEvent } from "./types";
+import { GameEvent, type GameEndedPayload } from "./types";
 import type { Room } from "./types";
 import type { GameState } from "./types/views";
 import "./App.css";
@@ -27,17 +28,21 @@ function App() {
   const [playerColor, setPlayerColor] = useState("");
   const [roomId, setRoomId] = useState(roomIdFromUrl || "");
   const [room, setRoom] = useState<Room | null>(null);
+  const [gameEndedMessage, setGameEndedMessage] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showStartTooltip, setShowStartTooltip] = useState(false);
   const [isGuestReady, setIsGuestReady] = useState(false);
   const [drawTime, setDrawTime] = useState("");
   const [rounds, setRounds] = useState("");
   const inviteTimeoutRef = useRef<number | null>(null);
+  const roomRef = useRef<Room | null>(null);
 
   const isHost = !roomIdFromUrl;
   const playerCount = 1;
   const maxPlayers = 8;
-  const startDisabled = isHost && (!drawTime || !rounds);
+  const startDisabled =
+    isHost &&
+    (!drawTime || !rounds || !room?.players || room.players.length < 2);
   const createDisabled =
     playerName.length === 0 ||
     playerColor.length === 0 ||
@@ -123,7 +128,21 @@ function App() {
   };
 
   useEffect(() => {
+    roomRef.current = room;
+  }, [room]);
+
+  useEffect(() => {
     connectSocket();
+
+    const handleBeforeUnload = () => {
+      const activeRoom = roomRef.current;
+      if (activeRoom?.id) {
+        leaveRoom();
+      }
+      disconnectSocket();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     const unsubscribeRoomCreated = onClientEvent(
       GameEvent.ROOM_CREATED,
@@ -161,6 +180,16 @@ function App() {
       },
     );
 
+    const unsubscribePlayerLeft = onClientEvent(
+      GameEvent.PLAYER_LEFT,
+      (payload) => {
+        console.log("Player left event received: ", payload);
+        const room = payload?.data as Room | undefined;
+        if (!room) return;
+        setRoom(room);
+      },
+    );
+
     const unsubscribeGameStarted = onClientEvent(
       GameEvent.GAME_STARTED,
       (payload) => {
@@ -171,11 +200,31 @@ function App() {
       },
     );
 
+    const unsubscribeGameEnded = onClientEvent(
+      GameEvent.GAME_ENDED,
+      (payload) => {
+        const data = payload?.data as GameEndedPayload | undefined;
+        if (!data) return;
+        if (data.reason === "hostLeft") {
+          setGameEndedMessage("The host left the game. The session ended.");
+          setGameState("results");
+        } else if (data.reason === "notEnoughPlayers") {
+          setGameEndedMessage(
+            "Not enough players to continue the game. The session ended.",
+          );
+          setGameState("results");
+        }
+      },
+    );
+
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       unsubscribeRoomCreated();
       unsubscribeJoinedRoom();
       unsubscribePlayerJoined();
+      unsubscribePlayerLeft();
       unsubscribeGameStarted();
+      unsubscribeGameEnded();
       disconnectSocket();
       if (inviteTimeoutRef.current) {
         window.clearTimeout(inviteTimeoutRef.current);
@@ -249,7 +298,8 @@ function App() {
         {gameState === "results" && (
           <ResultsView
             playerName={playerName}
-            onBackToLobby={() => setGameState("lobby")}
+            message={gameEndedMessage ?? undefined}
+            onBackToStart={() => setGameState("start")}
           />
         )}
       </main>

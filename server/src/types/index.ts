@@ -28,6 +28,7 @@ export enum GameEvent {
   WORD_SELECTED = "wordSelected",
   UPDATED_DRAWING_DATA = "updatedDrawingData",
   GUESS_MADE = "guessMade",
+  HOST_CHANGED = "hostChanged",
 }
 
 export interface PlayerData {
@@ -37,6 +38,7 @@ export interface PlayerData {
 
 export interface Player extends PlayerData {
   id: string;
+  socketId: string;
   isHost: boolean;
   score: number;
   guessed: boolean;
@@ -85,6 +87,13 @@ export interface GameState {
 export interface ClientCreateRoomData extends PlayerData {
   drawTime: number;
   rounds: number;
+}
+
+export type GameEndedReason = "hostLeft" | "notEnoughPlayers";
+
+export interface GameEndedPayload {
+  roomId: Room["id"];
+  reason: GameEndedReason;
 }
 
 export type ShapeType = "circle" | "triangle" | "rectangle";
