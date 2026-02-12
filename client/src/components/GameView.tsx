@@ -59,7 +59,6 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     new Map<string, { x: number; y: number; timestamp: number }>(),
   );
   const pendingDrawingDataRef = useRef<DrawDataPoint[] | null>(null);
-  const previousWordRef = useRef<string>("");
   const gamePlayers = room?.players?.length
     ? room.players
     : [
@@ -579,22 +578,14 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     };
   }, []);
 
-  // Track the current word so we can show it when the round ends
-  useEffect(() => {
-    if (room?.gameState?.currentWord) {
-      previousWordRef.current = room.gameState.currentWord;
-    }
-  }, [room?.gameState?.currentWord]);
-
   useEffect(() => {
     const unsubscribe = onClientEvent(GameEvent.ROUND_STARTED, (payload) => {
       const roomData = payload?.data as Room | undefined;
       if (!roomData) return;
 
-      // Show dialog with the previous word
-      if (previousWordRef.current) {
-        setRoundEndDialog({ show: true, word: previousWordRef.current });
-        // Auto-dismiss after 3 seconds
+      // Show dialog with the last word from the previous round
+      if (roomData.gameState?.lastWord) {
+        setRoundEndDialog({ show: true, word: roomData.gameState.lastWord });
         setTimeout(() => {
           setRoundEndDialog({ show: false, word: "" });
         }, 3000);

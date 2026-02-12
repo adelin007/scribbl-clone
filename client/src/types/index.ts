@@ -72,6 +72,7 @@ export interface GameState {
   currentRound: number;
   currentDrawerId: string | null;
   currentWord: string | null;
+  lastWord: string | null;
   wordChoices: string[];
   hintLetters: HintLetters[];
   roomState: RoomStateType;

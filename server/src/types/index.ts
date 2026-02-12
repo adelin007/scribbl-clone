@@ -87,6 +87,7 @@ export interface GameState {
   currentRound: number;
   currentDrawerId: string | null;
   currentWord: string | null;
+  lastWord: string | null; // The word from the previous round
   wordChoices: string[]; // 3 random words for drawer to choose from
   hintLetters: HintLetters[];
   roomState: RoomState;

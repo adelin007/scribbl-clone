@@ -63,7 +63,8 @@ const transitionState = (room: Room, nextState: RoomState): void => {
     const nextDrawerIndex = (currentDrawerIndex + 1) % room.players.length;
     room.gameState.currentDrawerId = room.players[nextDrawerIndex]?.id ?? null;
 
-    // Clear current word and provide new word choices
+    // Save current word as lastWord, then clear current word and provide new choices
+    room.gameState.lastWord = room.gameState.currentWord;
     room.gameState.currentWord = null;
     room.gameState.wordChoices = getRandomWords(3);
 
@@ -140,6 +141,7 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     currentRound: 1,
     currentDrawerId: firstDrawer.id,
     currentWord: null,
+    lastWord: null,
     wordChoices: getRandomWords(3),
     hintLetters: [],
     guesses: [],
