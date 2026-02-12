@@ -8,6 +8,22 @@ import {
 } from "../types/index.ts";
 import { deleteRoom, getRoomById, rooms } from "./roomController.ts";
 
+const words = [
+  "apple",
+  "banana",
+  "cat",
+  "dog",
+  "elephant",
+  "flower",
+  "guitar",
+  "house",
+];
+
+export const getRandomWord = () => {
+  const randomIndex = Math.floor(Math.random() * words.length);
+  return words[randomIndex] ?? null;
+};
+
 //TODO - implement database to store rooms and players, for now we will use an in-memory store
 const players: Set<Player> = new Set();
 export const createPlayer = (
@@ -49,7 +65,7 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
   room.gameState = {
     currentRound: 1,
     currentDrawerId: firstDrawer.id,
-    currentWord: null,
+    currentWord: getRandomWord(),
     hintLetters: [],
     roomState: RoomState.DRAWING,
     timerStartedAt: null,

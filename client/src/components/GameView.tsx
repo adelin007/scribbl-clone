@@ -620,7 +620,15 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
           <strong>Round 1</strong>
           <span className="muted"> / 3</span>
         </div>
-        <div className="game-topbar-center">Draw the word!</div>
+        <div className="game-topbar-center">
+          {isDrawingAllowed && room?.gameState?.currentWord ? (
+            <>
+              Draw: <strong>{room.gameState.currentWord}</strong>
+            </>
+          ) : (
+            "Guess the word!"
+          )}
+        </div>
         <div className="game-timer">01:32</div>
       </div>
 
