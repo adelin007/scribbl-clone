@@ -12,7 +12,7 @@ const rooms: Set<Room> = new Set();
 
 export const createRoom = (data: CreateRoomData) => {
   console.log("Creating room with data: ", data);
-  const newPlayer: Player = createPlayer(data.host);
+  const newPlayer: Player = createPlayer(data.host, true);
   const newRoom: Room = {
     id: crypto.randomUUID(),
     hostId: newPlayer.id,
@@ -30,7 +30,7 @@ export const joinRoom = (roomId: string, playerData: PlayerData) => {
   if (!room) {
     throw new Error("Room not found");
   }
-  const newPlayer: Player = createPlayer(playerData);
+  const newPlayer: Player = createPlayer(playerData, false);
   room.players.push(newPlayer);
   return room;
 };

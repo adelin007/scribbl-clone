@@ -38,6 +38,7 @@ export interface PlayerData {
 
 export interface Player extends PlayerData {
   id: string;
+  isHost: boolean;
   score: number;
   guessed: boolean;
   guessedAt: string | null; // ISO timestamp

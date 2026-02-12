@@ -2,8 +2,6 @@ import type { LobbyViewProps } from "../types/views";
 
 export const LobbyView = ({
   room,
-  playerName,
-  playerColor,
   playerCount,
   maxPlayers,
   isHost,
@@ -19,18 +17,7 @@ export const LobbyView = ({
   onStart,
   onInvite,
 }: LobbyViewProps) => {
-  const lobbyPlayers = room?.players?.length
-    ? room.players
-    : [
-        {
-          id: "local",
-          name: playerName || "Player",
-          color: playerColor || "#4f86c6",
-          score: 0,
-          guessed: false,
-          guessedAt: null,
-        },
-      ];
+  const lobbyPlayers = room?.players?.length ? room.players : [];
   const currentCount = room?.players?.length ?? playerCount;
   const currentMaxPlayers = room?.settings.maxPlayers ?? maxPlayers;
 
@@ -51,9 +38,6 @@ export const LobbyView = ({
           <h3>Players</h3>
           <div className="player-list">
             {lobbyPlayers.map((player) => {
-              const isPlayerHost = room?.hostId
-                ? player.id === room.hostId
-                : isHost;
               return (
                 <div className="player-card" key={player.id}>
                   <span
@@ -63,7 +47,7 @@ export const LobbyView = ({
                   <div className="player-meta">
                     <span className="player-name">{player.name}</span>
                     <span className="player-role">
-                      {isPlayerHost ? "Host" : "Guest"}
+                      {player.isHost ? "Host" : "Guest"}
                     </span>
                   </div>
                   <span className="player-status ready">In lobby</span>
