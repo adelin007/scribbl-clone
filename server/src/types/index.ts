@@ -64,10 +64,10 @@ export interface RoomSettings {
 
 export enum RoomState {
   WAITING = "waiting",
-  IN_GAME = "in_game",
   PLAYER_CHOOSE_WORD = "playerChooseWord",
   DRAWING = "drawing",
   GUESSED = "guessed",
+  ROUND_END = "roundEnd",
   ENDED = "ended",
 }
 

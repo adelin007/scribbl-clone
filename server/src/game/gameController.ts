@@ -8,6 +8,41 @@ import {
 } from "../types/index.ts";
 import { deleteRoom, getRoomById, rooms } from "./roomController.ts";
 
+// State Machine Definition
+const STATE_TRANSITIONS: Record<RoomState, RoomState[]> = {
+  [RoomState.WAITING]: [RoomState.PLAYER_CHOOSE_WORD],
+  [RoomState.PLAYER_CHOOSE_WORD]: [RoomState.DRAWING, RoomState.ENDED],
+  [RoomState.DRAWING]: [
+    RoomState.GUESSED,
+    RoomState.ROUND_END,
+    RoomState.ENDED,
+  ],
+  [RoomState.GUESSED]: [RoomState.ROUND_END, RoomState.ENDED],
+  [RoomState.ROUND_END]: [RoomState.PLAYER_CHOOSE_WORD, RoomState.ENDED],
+  [RoomState.ENDED]: [],
+};
+
+const validateStateTransition = (
+  currentState: RoomState,
+  nextState: RoomState,
+): boolean => {
+  return STATE_TRANSITIONS[currentState]?.includes(nextState) ?? false;
+};
+
+const transitionState = (room: Room, nextState: RoomState): void => {
+  if (!room.gameState) {
+    throw new Error("Cannot transition state: game state is null");
+  }
+
+  if (!validateStateTransition(room.gameState.roomState, nextState)) {
+    throw new Error(
+      `Invalid state transition from ${room.gameState.roomState} to ${nextState}`,
+    );
+  }
+
+  room.gameState.roomState = nextState;
+};
+
 const words = [
   "apple",
   "banana",
@@ -65,13 +100,17 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
   room.gameState = {
     currentRound: 1,
     currentDrawerId: firstDrawer.id,
-    currentWord: getRandomWord(),
+    currentWord: null,
     hintLetters: [],
     guesses: [],
-    roomState: RoomState.DRAWING,
+    roomState: RoomState.PLAYER_CHOOSE_WORD,
     timerStartedAt: null,
     drawingData: [],
   };
+
+  // Auto-select word and transition to DRAWING
+  room.gameState.currentWord = getRandomWord();
+  transitionState(room, RoomState.DRAWING);
 
   return room;
 };
@@ -112,6 +151,16 @@ export const handleGuess = (
     );
     player.guessed = true;
     player.guessedAt = guessItem.guessedAt;
+
+    // Check if all non-drawer players have guessed correctly
+    const nonDrawerPlayers = room.players.filter(
+      (p) => p.id !== room.gameState?.currentDrawerId,
+    );
+    const allGuessed = nonDrawerPlayers.every((p) => p.guessed);
+
+    if (allGuessed) {
+      transitionState(room, RoomState.ROUND_END);
+    }
   }
 
   return { room, guessItem };
@@ -134,6 +183,10 @@ export const handlePlayerLeft = (
   room.players.splice(playerIndex, 1);
 
   if (wasHost) {
+    // Transition to ENDED state if game was active
+    if (room.gameState) {
+      transitionState(room, RoomState.ENDED);
+    }
     room.gameState = null;
     deleteRoom(room.id);
     return {
@@ -146,6 +199,10 @@ export const handlePlayerLeft = (
   }
 
   if (room.players.length < 2) {
+    // Transition to ENDED state if game was active
+    if (room.gameState) {
+      transitionState(room, RoomState.ENDED);
+    }
     deleteRoom(room.id);
     return {
       room: null,
@@ -192,6 +249,12 @@ export const handleDrawingAction = (
 };
 
 export const endGame = (roomId: string) => {
-  //TODO - implement game logic to end the game, for now we will just log the action
-  console.log(`Ending game for room ${roomId}`);
+  const room = getRoomById(roomId);
+  if (!room) {
+    throw new Error("Room not found");
+  }
+  if (room.gameState) {
+    transitionState(room, RoomState.ENDED);
+  }
+  return room;
 };
