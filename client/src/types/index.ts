@@ -31,6 +31,7 @@ export const GameEvent = {
   GUESS_MADE: "guessMade",
   GUESS_CORRECT: "guessCorrect",
   HOST_CHANGED: "hostChanged",
+  ROUND_STARTED: "roundStarted",
 } as const;
 
 export type GameEventType = (typeof GameEvent)[keyof typeof GameEvent];

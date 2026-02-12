@@ -41,6 +41,40 @@ const transitionState = (room: Room, nextState: RoomState): void => {
   }
 
   room.gameState.roomState = nextState;
+
+  // Handle ROUND_END transition
+  if (nextState === RoomState.ROUND_END) {
+    // Reset all players' guessed status
+    room.players.forEach((player) => {
+      player.guessed = false;
+      player.guessedAt = null;
+    });
+
+    // Clear guesses array
+    room.gameState.guesses = [];
+
+    // Clear drawing data
+    room.gameState.drawingData = [];
+
+    // Select next drawer (rotate through players)
+    const currentDrawerIndex = room.players.findIndex(
+      (p) => p.id === room.gameState?.currentDrawerId,
+    );
+    const nextDrawerIndex = (currentDrawerIndex + 1) % room.players.length;
+    room.gameState.currentDrawerId = room.players[nextDrawerIndex]?.id ?? null;
+
+    // Select new word
+    room.gameState.currentWord = getRandomWord();
+
+    // Increment round if we've cycled through all players
+    if (nextDrawerIndex === 0) {
+      room.gameState.currentRound += 1;
+    }
+
+    // Transition to PLAYER_CHOOSE_WORD (or DRAWING since we auto-select word)
+    room.gameState.roomState = RoomState.PLAYER_CHOOSE_WORD;
+    transitionState(room, RoomState.DRAWING);
+  }
 };
 
 const words = [
@@ -160,10 +194,11 @@ export const handleGuess = (
 
     if (allGuessed) {
       transitionState(room, RoomState.ROUND_END);
+      return { room, guessItem, roundEnded: true };
     }
   }
 
-  return { room, guessItem };
+  return { room, guessItem, roundEnded: false };
 };
 
 export const handlePlayerLeft = (

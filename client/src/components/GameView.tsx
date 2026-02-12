@@ -573,6 +573,19 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = onClientEvent(GameEvent.ROUND_STARTED, (payload) => {
+      const roomData = payload?.data as Room | undefined;
+      if (!roomData) return;
+      // Clear the canvas when a new round starts
+      clearCanvas();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [clearCanvas]);
+
+  useEffect(() => {
     if (chatFeedRef.current) {
       chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
     }
@@ -709,6 +722,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                     {player.name}
                     {isLocalPlayer && <span className="player-you">YOU</span>}
                   </span>
+                  <span className="player-score">{player.score}</span>
                   {isDrawer && <span className="drawer-badge">Drawing</span>}
                 </li>
               );

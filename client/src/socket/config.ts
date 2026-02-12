@@ -173,3 +173,7 @@ socket.on(GameEvent.GAME_ENDED, (data) => {
 socket.on(GameEvent.GUESS_MADE, (data) => {
   emitClientEvent(GameEvent.GUESS_MADE, { data });
 });
+
+socket.on(GameEvent.ROUND_STARTED, (data: Room) => {
+  emitClientEvent(GameEvent.ROUND_STARTED, { data });
+});

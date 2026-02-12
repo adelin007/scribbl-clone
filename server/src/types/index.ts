@@ -30,6 +30,7 @@ export enum GameEvent {
   GUESS_MADE = "guessMade",
   GUESS_CORRECT = "guessCorrect",
   HOST_CHANGED = "hostChanged",
+  ROUND_STARTED = "roundStarted",
 }
 
 export interface PlayerData {

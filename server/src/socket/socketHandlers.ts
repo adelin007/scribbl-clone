@@ -197,6 +197,11 @@ export function setupSocket(io: Server) {
       }) => {
         const result = handleGuess(data.roomId, data.playerId, data.guess);
         io.to(data.roomId).emit(GameEvent.GUESS_MADE, result.room);
+
+        // If round ended and transitioned to new round, emit ROUND_STARTED
+        if (result.roundEnded) {
+          io.to(data.roomId).emit(GameEvent.ROUND_STARTED, result.room);
+        }
       },
     );
   });
