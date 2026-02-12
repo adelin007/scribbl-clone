@@ -1,6 +1,11 @@
 import { Paintbrush, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { onClientEvent, sendDrawingData, socket } from "../socket/config";
+import {
+  onClientEvent,
+  sendDrawingData,
+  sendGuess,
+  socket,
+} from "../socket/config";
 import {
   GameEvent,
   type DrawDataPoint,
@@ -13,6 +18,7 @@ import type { GameViewProps } from "../types/views";
 export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const chatFeedRef = useRef<HTMLDivElement | null>(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const shapeStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -21,6 +27,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const [canvasReady, setCanvasReady] = useState(false);
   const [brushSize, setBrushSize] = useState(8);
   const [brushColor, setBrushColor] = useState("#2f2a24");
+  const [guessInput, setGuessInput] = useState("");
   const [activeTool, setActiveTool] = useState<
     "brush" | "bucket" | "eraser" | "circle" | "triangle" | "rectangle"
   >("brush");
@@ -221,6 +228,22 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
       scaleX: canvas.width / rect.width,
       scaleY: canvas.height / rect.height,
     };
+  };
+
+  const handleGuessSubmit = () => {
+    if (!guessInput.trim() || !activeRoomId || !localPlayerId) return;
+    sendGuess({
+      roomId: activeRoomId,
+      playerId: localPlayerId,
+      guess: guessInput.trim(),
+    });
+    setGuessInput("");
+  };
+
+  const handleGuessKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleGuessSubmit();
+    }
   };
 
   useEffect(() => {
@@ -537,6 +560,24 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     replayDrawingData(drawingData);
   }, [canvasReady, replayDrawingData]);
 
+  useEffect(() => {
+    const unsubscribe = onClientEvent(GameEvent.GUESS_MADE, (payload) => {
+      const roomData = payload?.data as Room | undefined;
+      if (!roomData) return;
+      // Room data already has updated guesses array
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (chatFeedRef.current) {
+      chatFeedRef.current.scrollTop = chatFeedRef.current.scrollHeight;
+    }
+  }, [room?.gameState?.guesses]);
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingAllowed) return;
     if (!canvasReady) return;
@@ -612,6 +653,8 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     emitDrawingUpdate("CLEAR", { x: 0, y: 0 });
   };
+
+  console.log("Rendering GameView with room:", room);
 
   return (
     <section className="view game-view">
@@ -773,22 +816,39 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
 
         <aside className="panel game-chat">
           <h3>Chat</h3>
-          <div className="chat-feed">
+          <div className="chat-feed" ref={chatFeedRef}>
             <div className="chat-line">
               <strong>System:</strong> Game started!
             </div>
-            <div className="chat-line">
-              <strong>Luna:</strong> hello!
-            </div>
-            <div className="chat-line">
-              <strong>Kai:</strong> is it a cat?
-            </div>
+            {room?.gameState?.guesses?.map((guessItem, index) => {
+              const player = gamePlayers.find(
+                (p) => p.id === guessItem.playerId,
+              );
+              return (
+                <div
+                  key={index}
+                  className="chat-line"
+                  style={{
+                    color: guessItem.correct ? "#22c55e" : "inherit",
+                    fontWeight: guessItem.correct ? "600" : "normal",
+                  }}
+                >
+                  <strong>{player?.name || "Unknown"}:</strong>{" "}
+                  {guessItem.guess}
+                </div>
+              );
+            })}
           </div>
-          <input
-            className="chat-input"
-            type="text"
-            placeholder="Type your guess..."
-          />
+          {!isDrawingAllowed && (
+            <input
+              className="chat-input"
+              type="text"
+              placeholder="Type your guess..."
+              value={guessInput}
+              onChange={(e) => setGuessInput(e.target.value)}
+              onKeyDown={handleGuessKeyDown}
+            />
+          )}
         </aside>
       </div>
 

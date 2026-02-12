@@ -7,6 +7,7 @@ import type {
   DrawDataUpdateType,
   GameEventType,
   JoinRoomData,
+  Player,
   Room,
 } from "../types";
 
@@ -121,6 +122,14 @@ export const sendDrawingData = (data: {
   emitClientAction(GameEvent.DRAWING_DATA, data);
 };
 
+export const sendGuess = (data: {
+  roomId: Room["id"];
+  playerId: Player["id"];
+  guess: string;
+}) => {
+  emitClientAction(GameEvent.GUESS_MADE, data);
+};
+
 socket.on("connect", () => {
   emitClientEvent("connected");
 });
@@ -159,4 +168,8 @@ socket.on(GameEvent.UPDATED_DRAWING_DATA, (data: Room) => {
 
 socket.on(GameEvent.GAME_ENDED, (data) => {
   emitClientEvent(GameEvent.GAME_ENDED, { data });
+});
+
+socket.on(GameEvent.GUESS_MADE, (data) => {
+  emitClientEvent(GameEvent.GUESS_MADE, { data });
 });

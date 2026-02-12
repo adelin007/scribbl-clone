@@ -29,6 +29,7 @@ export const GameEvent = {
   UPDATED_DRAWING_DATA: "updatedDrawingData",
 
   GUESS_MADE: "guessMade",
+  GUESS_CORRECT: "guessCorrect",
   HOST_CHANGED: "hostChanged",
 } as const;
 
@@ -59,6 +60,13 @@ export interface HintLetters {
   letter: string;
 }
 
+export interface GuessItem {
+  playerId: string;
+  guess: string;
+  correct: boolean;
+  guessedAt: string; // ISO timestamp
+}
+
 export interface GameState {
   currentRound: number;
   currentDrawerId: string | null;
@@ -67,6 +75,7 @@ export interface GameState {
   roomState: RoomStateType;
   timerStartedAt: string | null; // ISO timestamp
   drawingData: DrawDataPoint[]; // Store drawing data for replaying on client
+  guesses: GuessItem[]; // Store guesses for replaying on client - this is the actual chat messages with guesses, correct or incorrect, along with timestamps
 }
 
 export const RoomState = {

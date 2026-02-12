@@ -17,6 +17,7 @@ import {
 } from "../game/roomController.ts";
 import {
   handleDrawingAction,
+  handleGuess,
   handlePlayerLeft,
   startGame,
 } from "../game/gameController.ts";
@@ -185,6 +186,19 @@ export function setupSocket(io: Server) {
         );
         const updatedRoom = startGame(data.roomId, data.playerId);
         io.to(updatedRoom.id).emit(GameEvent.GAME_STARTED, updatedRoom);
+      },
+    );
+    socket.on(
+      GameEvent.GUESS_MADE,
+      async (data: {
+        roomId: Room["id"];
+        playerId: Player["id"];
+        guess: string;
+      }) => {
+        console.log(`Received guess: ${JSON.stringify(data)}`);
+        const result = handleGuess(data.roomId, data.playerId, data.guess);
+        console.log(`Guess result: ${JSON.stringify(result.room)}`);
+        io.to(data.roomId).emit(GameEvent.GUESS_MADE, result.room);
       },
     );
   });

@@ -28,6 +28,7 @@ export enum GameEvent {
   WORD_SELECTED = "wordSelected",
   UPDATED_DRAWING_DATA = "updatedDrawingData",
   GUESS_MADE = "guessMade",
+  GUESS_CORRECT = "guessCorrect",
   HOST_CHANGED = "hostChanged",
 }
 
@@ -70,7 +71,14 @@ export enum RoomState {
   ENDED = "ended",
 }
 
-export interface GuessedLetters {
+export interface GuessItem {
+  playerId: string;
+  guess: string;
+  correct: boolean;
+  guessedAt: string; // ISO timestamp
+}
+
+export interface HintLetters {
   index: number;
   letter: string;
 }
@@ -78,10 +86,11 @@ export interface GameState {
   currentRound: number;
   currentDrawerId: string | null;
   currentWord: string | null;
-  hintLetters: GuessedLetters[];
+  hintLetters: HintLetters[];
   roomState: RoomState;
   timerStartedAt: string | null; // ISO timestamp
   drawingData: DrawDataPoint[]; // Store drawing data for replaying on client
+  guesses: GuessItem[]; // Store guesses for replaying on client
 }
 
 export interface ClientCreateRoomData extends PlayerData {

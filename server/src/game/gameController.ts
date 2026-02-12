@@ -67,12 +67,51 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     currentDrawerId: firstDrawer.id,
     currentWord: getRandomWord(),
     hintLetters: [],
+    guesses: [],
     roomState: RoomState.DRAWING,
     timerStartedAt: null,
     drawingData: [],
   };
 
   return room;
+};
+
+export const handleGuess = (
+  roomId: Room["id"],
+  playerId: Player["id"],
+  guess: string,
+) => {
+  const room = getRoomById(roomId);
+  if (!room) {
+    throw new Error("Room not found");
+  }
+  const player = room.players.find((p) => p.id === playerId);
+  if (!player) {
+    throw new Error("Player not found in the room");
+  }
+  if (room.gameState?.roomState !== RoomState.DRAWING) {
+    throw new Error("Game is not currently in drawing state");
+  }
+  const correct =
+    guess.toLowerCase() === room.gameState.currentWord?.toLowerCase();
+  const guessItem = {
+    playerId,
+    guess,
+    correct,
+    guessedAt: new Date().toISOString(),
+  };
+  room.gameState.guesses.push(guessItem);
+
+  if (correct) {
+    player.score += Math.max(
+      10 - room.gameState.guesses.filter((g) => g.correct).length, // More points for earlier correct guesses
+      1,
+    );
+    player.guessed = true;
+    player.guessedAt = guessItem.guessedAt;
+  }
+
+  return { room, guessItem };
 };
 
 export const handlePlayerLeft = (
