@@ -10,6 +10,7 @@ import {
   disconnectSocket,
   joinRoom,
   onClientEvent,
+  startGame,
 } from "./socket/config";
 import { GameEvent } from "./types";
 import type { Room } from "./types";
@@ -114,6 +115,13 @@ function App() {
     });
   };
 
+  const handleStartGame = () => {
+    const activeRoomId = room?.id ?? roomId;
+    const hostId = room?.hostId;
+    if (!activeRoomId || !hostId) return;
+    startGame({ roomId: activeRoomId, playerId: hostId });
+  };
+
   useEffect(() => {
     connectSocket();
 
@@ -153,10 +161,21 @@ function App() {
       },
     );
 
+    const unsubscribeGameStarted = onClientEvent(
+      GameEvent.GAME_STARTED,
+      (payload) => {
+        const room = payload?.data as Room | undefined;
+        if (!room) return;
+        setRoom(room);
+        setGameState("game");
+      },
+    );
+
     return () => {
       unsubscribeRoomCreated();
       unsubscribeJoinedRoom();
       unsubscribePlayerJoined();
+      unsubscribeGameStarted();
       disconnectSocket();
       if (inviteTimeoutRef.current) {
         window.clearTimeout(inviteTimeoutRef.current);
@@ -213,7 +232,7 @@ function App() {
             onDrawTimeChange={handleLobbyDrawTimeChange}
             onRoundsChange={handleLobbyRoundsChange}
             onHoverStart={(isHovering) => setShowStartTooltip(isHovering)}
-            onStart={() => setGameState("game")}
+            onStart={handleStartGame}
             onInvite={handleInvite}
             onToggleReady={() => setIsGuestReady((prev) => !prev)}
           />

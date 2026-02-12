@@ -12,6 +12,7 @@ export enum GameEvent {
   GUESS = "guess",
   CHANGE_SETTINGS = "changeSettings",
   WORD_SELECT = "wordSelect",
+  DRAWING_DATA = "drawingData",
 
   // Server events
   ROOM_CREATED = "roomCreated",
@@ -25,7 +26,7 @@ export enum GameEvent {
   PLAYER_UNREADY = "playerUnready",
   SETTINGS_CHANGED = "settingsChanged",
   WORD_SELECTED = "wordSelected",
-  DRAWING_DATA = "drawingData",
+  UPDATED_DRAWING_DATA = "updatedDrawingData",
   GUESS_MADE = "guessMade",
 }
 
@@ -48,6 +49,7 @@ export interface Room {
   socketId: string;
   players: Player[];
   settings: RoomSettings;
+  gameState: GameState | null; // null while in lobby, populated when game starts
 }
 
 export interface RoomSettings {
@@ -57,7 +59,44 @@ export interface RoomSettings {
   rounds: number;
 }
 
+export enum RoomState {
+  WAITING = "waiting",
+  IN_GAME = "in_game",
+  PLAYER_CHOOSE_WORD = "playerChooseWord",
+  DRAWING = "drawing",
+  GUESSED = "guessed",
+  ENDED = "ended",
+}
+
+export interface GuessedLetters {
+  index: number;
+  letter: string;
+}
+export interface GameState {
+  currentRound: number;
+  currentDrawerId: string | null;
+  currentWord: string | null;
+  hintLetters: GuessedLetters[];
+  roomState: RoomState;
+  timerStartedAt: string | null; // ISO timestamp
+  drawingData: DrawDataPoint[]; // Store drawing data for replaying on client
+}
+
 export interface ClientCreateRoomData extends PlayerData {
   drawTime: number;
   rounds: number;
 }
+
+export type Tool = "brush" | "eraser" | "bucket";
+export interface DrawDataPoint {
+  roomId: string;
+  playerId: string;
+  tool: Tool;
+  size: number;
+  color: string;
+  x: number;
+  y: number;
+  timestamp: string; // ISO timestamp
+}
+
+export type DrawDataUpdateType = "DRAW" | "CLEAR";

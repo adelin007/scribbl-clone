@@ -3,6 +3,8 @@ import { GameEvent } from "../types";
 import type {
   ChangeRoomSettingsData,
   CreateRoomData,
+  DrawDataPoint,
+  DrawDataUpdateType,
   GameEventType,
   JoinRoomData,
   Room,
@@ -110,6 +112,15 @@ export const wordSelect = (data?: unknown) => {
   emitClientAction("wordSelect", data);
 };
 
+export const sendDrawingData = (data: {
+  roomId: string;
+  playerId: string;
+  action: DrawDataUpdateType;
+  drawingData: DrawDataPoint;
+}) => {
+  emitClientAction(GameEvent.DRAWING_DATA, data);
+};
+
 socket.on("connect", () => {
   emitClientEvent("connected");
 });
@@ -132,4 +143,12 @@ socket.on(GameEvent.JOINED_ROOM, (data: Room) => {
 
 socket.on(GameEvent.PLAYER_JOINED, (data: Room) => {
   emitClientEvent(GameEvent.PLAYER_JOINED, { data });
+});
+
+socket.on(GameEvent.GAME_STARTED, (data: Room) => {
+  emitClientEvent(GameEvent.GAME_STARTED, { data });
+});
+
+socket.on(GameEvent.UPDATED_DRAWING_DATA, (data: Room) => {
+  emitClientEvent(GameEvent.UPDATED_DRAWING_DATA, { data });
 });

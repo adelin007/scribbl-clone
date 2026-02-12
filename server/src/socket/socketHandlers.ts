@@ -2,7 +2,11 @@ import type { Server } from "socket.io";
 import {
   GameEvent,
   type ClientCreateRoomData,
+  type DrawDataPoint,
+  type DrawDataUpdateType,
+  type Player,
   type PlayerData,
+  type Room,
   type RoomSettings,
 } from "../types/index.ts";
 import {
@@ -10,6 +14,7 @@ import {
   createRoom,
   joinRoom,
 } from "../game/roomController.ts";
+import { handleDrawingAction, startGame } from "../game/gameController.ts";
 
 export function setupSocket(io: Server) {
   io.on(GameEvent.CONNECT, (socket) => {
@@ -59,6 +64,38 @@ export function setupSocket(io: Server) {
       GameEvent.CHANGE_ROOM_SETTINGS,
       async (data: { roomId: string; newSettings: Partial<RoomSettings> }) => {
         changeRoomSettings(data.roomId, data.newSettings);
+      },
+    );
+
+    socket.on(
+      GameEvent.DRAWING_DATA,
+      async (data: {
+        roomId: Room["id"];
+        playerId: Player["id"];
+        action: DrawDataUpdateType;
+        drawingData: DrawDataPoint;
+      }) => {
+        console.log(
+          `Received drawing data from player ${data.playerId} in room ${data.roomId}, drawingData: ${JSON.stringify(data.drawingData)}`,
+        );
+        const newRoomData = handleDrawingAction(
+          data.roomId,
+          data.playerId,
+          data.action,
+          data.drawingData,
+        );
+        io.to(data.roomId).emit(GameEvent.UPDATED_DRAWING_DATA, newRoomData);
+      },
+    );
+
+    socket.on(
+      GameEvent.START_GAME,
+      async (data: { roomId: Room["id"]; playerId: Player["id"] }) => {
+        console.log(
+          `Starting game for room ${data.roomId} by player ${data.playerId}`,
+        );
+        const updatedRoom = startGame(data.roomId, data.playerId);
+        io.to(updatedRoom.id).emit(GameEvent.GAME_STARTED, updatedRoom);
       },
     );
   });

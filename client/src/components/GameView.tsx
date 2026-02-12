@@ -1,5 +1,12 @@
 import { Eraser, Paintbrush, PaintBucket, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { onClientEvent, sendDrawingData } from "../socket/config";
+import {
+  GameEvent,
+  type DrawDataPoint,
+  type DrawDataUpdateType,
+  type Room,
+} from "../types";
 import type { GameViewProps } from "../types/views";
 
 export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
@@ -24,6 +31,10 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     "#ffffff",
   ];
   const eraserColor = "#ffffff";
+  const remotePointsRef = useRef(
+    new Map<string, { x: number; y: number; timestamp: number }>(),
+  );
+  const pendingDrawingDataRef = useRef<DrawDataPoint[] | null>(null);
   const gamePlayers = room?.players?.length
     ? room.players
     : [
@@ -36,6 +47,15 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
           guessedAt: null,
         },
       ];
+  const localPlayer = room?.players?.find(
+    (player) => player.name === playerName && player.color === playerColor,
+  );
+  const isDrawingAllowed = Boolean(
+    room?.gameState?.currentDrawerId &&
+    localPlayer?.id === room.gameState.currentDrawerId,
+  );
+  const activeRoomId = room?.id;
+  const localPlayerId = localPlayer?.id;
 
   const buildBrushCursor = (size: number, color: string) => {
     const radius = size / 2;
@@ -51,6 +71,39 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
 
   const getActiveColor = () =>
     activeTool === "eraser" ? eraserColor : brushColor;
+
+  const emitDrawingUpdate = (
+    action: DrawDataUpdateType,
+    point: { x: number; y: number },
+    toolOverride?: "brush" | "eraser" | "bucket",
+  ) => {
+    if (!activeRoomId || !localPlayerId) return;
+    sendDrawingData({
+      roomId: activeRoomId,
+      playerId: localPlayerId,
+      action,
+      drawingData: {
+        roomId: activeRoomId,
+        playerId: localPlayerId,
+        tool: toolOverride ?? activeTool,
+        size: brushSizeRef.current,
+        color: getActiveColor(),
+        x: point.x,
+        y: point.y,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  };
+
+  const getCanvasScale = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      scaleX: canvas.width / rect.width,
+      scaleY: canvas.height / rect.height,
+    };
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -149,6 +202,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   };
 
   const handleBucketFill = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingAllowed) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -193,9 +247,154 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     }
 
     ctx.putImageData(imageData, 0, 0);
+    emitDrawingUpdate("DRAW", { x: point.x, y: point.y }, "bucket");
   };
 
+  const applyRemoteBucketFill = useCallback(
+    (point: { x: number; y: number }, color: string) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const scale = getCanvasScale();
+      if (!scale) return;
+      const x = Math.floor(point.x * scale.scaleX);
+      const y = Math.floor(point.y * scale.scaleY);
+
+      const { width, height } = canvas;
+      if (x < 0 || x >= width || y < 0 || y >= height) return;
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+      const startIndex = (y * width + x) * 4;
+      const target = {
+        r: data[startIndex],
+        g: data[startIndex + 1],
+        b: data[startIndex + 2],
+        a: data[startIndex + 3],
+      };
+      const fill = hexToRgba(color);
+
+      if (
+        target.r === fill.r &&
+        target.g === fill.g &&
+        target.b === fill.b &&
+        target.a === fill.a
+      ) {
+        return;
+      }
+
+      const stack: Array<{ x: number; y: number }> = [{ x, y }];
+      while (stack.length) {
+        const current = stack.pop();
+        if (!current) continue;
+        const { x: cx, y: cy } = current;
+        if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
+        const index = (cy * width + cx) * 4;
+        if (!colorsMatch(data, index, target)) continue;
+        setColorAt(data, index, fill);
+        stack.push({ x: cx + 1, y: cy });
+        stack.push({ x: cx - 1, y: cy });
+        stack.push({ x: cx, y: cy + 1 });
+        stack.push({ x: cx, y: cy - 1 });
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    },
+    [],
+  );
+
+  const clearCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    remotePointsRef.current.clear();
+  }, []);
+
+  const drawRemoteStroke = (data: DrawDataPoint) => {
+    console.log("DATA: ", data);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const x = data.x;
+    const y = data.y;
+    const lastPoint = remotePointsRef.current.get(data.playerId);
+    const strokeColor = data.tool === "eraser" ? eraserColor : data.color;
+    const timestamp = Number.isNaN(Date.parse(data.timestamp))
+      ? Date.now()
+      : Date.parse(data.timestamp);
+    const shouldBreakStroke =
+      lastPoint && Math.abs(timestamp - lastPoint.timestamp) > 200;
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = data.size;
+    ctx.strokeStyle = strokeColor;
+
+    if (lastPoint && !shouldBreakStroke) {
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.fillStyle = strokeColor;
+      ctx.arc(x, y, data.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    remotePointsRef.current.set(data.playerId, { x, y, timestamp });
+  };
+
+  const replayDrawingData = useCallback(
+    (drawingData: DrawDataPoint[]) => {
+      clearCanvas();
+      drawingData.forEach((data) => {
+        if (data.tool === "bucket") {
+          applyRemoteBucketFill({ x: data.x, y: data.y }, data.color);
+          remotePointsRef.current.delete(data.playerId);
+          return;
+        }
+
+        drawRemoteStroke(data);
+      });
+    },
+    [applyRemoteBucketFill, clearCanvas],
+  );
+
+  useEffect(() => {
+    const unsubscribe = onClientEvent(
+      GameEvent.UPDATED_DRAWING_DATA,
+      (payload) => {
+        const roomData = payload?.data as Room | undefined;
+        const drawingData = roomData?.gameState?.drawingData;
+        if (!drawingData) return;
+        if (!canvasReady) {
+          pendingDrawingDataRef.current = drawingData;
+          return;
+        }
+
+        replayDrawingData(drawingData);
+      },
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [canvasReady, replayDrawingData]);
+
+  useEffect(() => {
+    if (!canvasReady) return;
+    if (!pendingDrawingDataRef.current) return;
+    const drawingData = pendingDrawingDataRef.current;
+    pendingDrawingDataRef.current = null;
+    replayDrawingData(drawingData);
+  }, [canvasReady, replayDrawingData]);
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingAllowed) return;
     if (!canvasReady) return;
     if (activeTool === "bucket") {
       handleBucketFill(event);
@@ -207,6 +406,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     if (!point) return;
     drawingRef.current = true;
     lastPointRef.current = point;
+    emitDrawingUpdate("DRAW", point);
     ctx.lineWidth = brushSize;
     ctx.strokeStyle = getActiveColor();
     ctx.beginPath();
@@ -214,6 +414,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingAllowed) return;
     if (!drawingRef.current) return;
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
@@ -224,14 +425,17 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     ctx.lineTo(point.x, point.y);
     ctx.stroke();
     lastPointRef.current = point;
+    emitDrawingUpdate("DRAW", point);
   };
 
   const handlePointerUp = () => {
+    if (!isDrawingAllowed) return;
     drawingRef.current = false;
     lastPointRef.current = null;
   };
 
   const handleClear = () => {
+    if (!isDrawingAllowed) return;
     const confirmed = window.confirm("Clear the canvas?");
     if (!confirmed) return;
     const canvas = canvasRef.current;
@@ -239,6 +443,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    emitDrawingUpdate("CLEAR", { x: 0, y: 0 });
   };
 
   return (
@@ -256,15 +461,22 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
         <aside className="panel game-players">
           <h3>Players</h3>
           <ul className="list">
-            {gamePlayers.map((player) => (
-              <li className="list-item" key={player.id}>
-                <span
-                  className="avatar"
-                  style={{ backgroundColor: player.color }}
-                />
-                {player.name}
-              </li>
-            ))}
+            {gamePlayers.map((player) => {
+              const isDrawer = player.id === room?.gameState?.currentDrawerId;
+              return (
+                <li
+                  className={`list-item ${isDrawer ? "drawing" : ""}`}
+                  key={player.id}
+                >
+                  <span
+                    className="avatar"
+                    style={{ backgroundColor: player.color }}
+                  />
+                  <span>{player.name}</span>
+                  {isDrawer && <span className="drawer-badge">Drawing</span>}
+                </li>
+              );
+            })}
           </ul>
         </aside>
 
@@ -273,10 +485,11 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             ref={canvasRef}
             className="canvas"
             style={{
-              cursor:
-                activeTool === "bucket"
+              cursor: isDrawingAllowed
+                ? activeTool === "bucket"
                   ? buildBucketCursor()
-                  : buildBrushCursor(brushSize, getActiveColor()),
+                  : buildBrushCursor(brushSize, getActiveColor())
+                : "not-allowed",
             }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}

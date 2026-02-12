@@ -8,7 +8,11 @@ interface CreateRoomData {
 }
 
 //TODO - implement database to store rooms and players, for now we will use an in-memory store
-const rooms: Set<Room> = new Set();
+export const rooms: Set<Room> = new Set();
+
+export const getRoomById = (roomId: string): Room | undefined => {
+  return Array.from(rooms).find((r) => r.id === roomId);
+};
 
 export const createRoom = (data: CreateRoomData) => {
   console.log("Creating room with data: ", data);
@@ -19,6 +23,7 @@ export const createRoom = (data: CreateRoomData) => {
     socketId: data.socketId,
     players: [newPlayer],
     settings: data.settings,
+    gameState: null,
   };
   rooms.add(newRoom);
   console.log("Current rooms: ", rooms);

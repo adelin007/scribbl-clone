@@ -12,6 +12,7 @@ export const GameEvent = {
   GUESS: "guess",
   CHANGE_SETTINGS: "changeSettings",
   WORD_SELECT: "wordSelect",
+  DRAWING_DATA: "drawingData",
 
   // Server events
   ROOM_CREATED: "roomCreated",
@@ -25,7 +26,8 @@ export const GameEvent = {
   PLAYER_UNREADY: "playerUnready",
   SETTINGS_CHANGED: "settingsChanged",
   WORD_SELECTED: "wordSelected",
-  DRAWING_DATA: "drawingData",
+  UPDATED_DRAWING_DATA: "updatedDrawingData",
+
   GUESS_MADE: "guessMade",
 } as const;
 
@@ -43,12 +45,45 @@ export interface Player extends PlayerData {
   guessed: boolean;
   guessedAt: string | null; // ISO timestamp
 }
+
+export interface RoomSettings {
+  maxPlayers: number;
+  drawTime: number; // in seconds
+  roundTime: number; // in seconds
+  rounds: number;
+}
+export interface HintLetters {
+  index: number;
+  letter: string;
+}
+
+export interface GameState {
+  currentRound: number;
+  currentDrawerId: string | null;
+  currentWord: string | null;
+  hintLetters: HintLetters[];
+  roomState: RoomStateType;
+  timerStartedAt: string | null; // ISO timestamp
+  drawingData: DrawDataPoint[]; // Store drawing data for replaying on client
+}
+
+export const RoomState = {
+  WAITING: "waiting",
+  IN_GAME: "in_game",
+  PLAYER_CHOOSE_WORD: "playerChooseWord",
+  DRAWING: "drawing",
+  GUESSED: "guessed",
+  ENDED: "ended",
+} as const;
+
+export type RoomStateType = (typeof RoomState)[keyof typeof RoomState];
 export interface Room {
   id: string;
   hostId: string;
   socketId: string;
   players: Player[];
   settings: RoomSettings;
+  gameState: GameState | null; // null while in lobby, populated when game starts
 }
 
 export interface RoomSettings {
@@ -76,3 +111,17 @@ export interface JoinRoomData {
   roomId: Room["id"];
   playerData: PlayerData;
 }
+
+export type Tool = "brush" | "eraser" | "bucket";
+export interface DrawDataPoint {
+  roomId: string;
+  playerId: string;
+  tool: Tool;
+  size: number;
+  color: string;
+  x: number;
+  y: number;
+  timestamp: string; // ISO timestamp
+}
+
+export type DrawDataUpdateType = "DRAW" | "CLEAR";
