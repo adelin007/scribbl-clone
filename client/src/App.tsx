@@ -8,8 +8,10 @@ import {
   connectSocket,
   createRoom,
   disconnectSocket,
+  joinRoom,
   onClientEvent,
 } from "./socket/config";
+import { GameEvent } from "./types";
 import type { Room } from "./types";
 import type { GameState } from "./types/views";
 import "./App.css";
@@ -23,6 +25,7 @@ function App() {
   const [playerName, setPlayerName] = useState("");
   const [playerColor, setPlayerColor] = useState("");
   const [roomId, setRoomId] = useState(roomIdFromUrl || "");
+  const [room, setRoom] = useState<Room | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showStartTooltip, setShowStartTooltip] = useState(false);
   const [isGuestReady, setIsGuestReady] = useState(false);
@@ -64,7 +67,11 @@ function App() {
 
   const handleJoinRoom = () => {
     if (createDisabled) return;
-    setGameState("lobby");
+    if (!roomIdFromUrl) return;
+    joinRoom({
+      roomId: roomIdFromUrl,
+      playerData: { name: playerName, color: playerColor },
+    });
   };
 
   const handleInvite = async () => {
@@ -110,19 +117,46 @@ function App() {
   useEffect(() => {
     connectSocket();
 
-    const unsubscribeRoomCreated = onClientEvent("roomCreated", (payload) => {
-      console.log("Room created with payload: ", payload);
-      const room = payload?.data as Room | undefined;
-      if (!room) return;
-      setRoomId(room.id);
-      setDrawTime(String(room.settings.drawTime ?? ""));
-      setRounds(String(room.settings.rounds ?? ""));
-      void copyToClipboard(buildInviteUrl(room.id));
-      setGameState("lobby");
-    });
+    const unsubscribeRoomCreated = onClientEvent(
+      GameEvent.ROOM_CREATED,
+      (payload) => {
+        const room = payload?.data as Room | undefined;
+        if (!room) return;
+        setRoom(room);
+        setRoomId(room.id);
+        setDrawTime(String(room.settings.drawTime ?? ""));
+        setRounds(String(room.settings.rounds ?? ""));
+        void copyToClipboard(buildInviteUrl(room.id));
+        setGameState("lobby");
+      },
+    );
+
+    const unsubscribeJoinedRoom = onClientEvent(
+      GameEvent.JOINED_ROOM,
+      (payload) => {
+        const room = payload?.data as Room | undefined;
+        if (!room) return;
+        setRoom(room);
+        setRoomId(room.id);
+        setDrawTime(String(room.settings.drawTime ?? ""));
+        setRounds(String(room.settings.rounds ?? ""));
+        setGameState("lobby");
+      },
+    );
+
+    const unsubscribePlayerJoined = onClientEvent(
+      GameEvent.PLAYER_JOINED,
+      (payload) => {
+        const room = payload?.data as Room | undefined;
+        if (!room) return;
+        setRoom(room);
+      },
+    );
 
     return () => {
       unsubscribeRoomCreated();
+      unsubscribeJoinedRoom();
+      unsubscribePlayerJoined();
       disconnectSocket();
       if (inviteTimeoutRef.current) {
         window.clearTimeout(inviteTimeoutRef.current);
@@ -163,6 +197,7 @@ function App() {
 
         {gameState === "lobby" && (
           <LobbyView
+            room={room}
             playerName={playerName}
             playerColor={playerColor}
             playerCount={playerCount}
@@ -185,7 +220,11 @@ function App() {
         )}
 
         {gameState === "game" && (
-          <GameView playerName={playerName} playerColor={playerColor} />
+          <GameView
+            room={room}
+            playerName={playerName}
+            playerColor={playerColor}
+          />
         )}
 
         {gameState === "results" && (

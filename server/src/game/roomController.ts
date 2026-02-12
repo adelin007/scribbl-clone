@@ -25,6 +25,16 @@ export const createRoom = (data: CreateRoomData) => {
   return newRoom;
 };
 
+export const joinRoom = (roomId: string, playerData: PlayerData) => {
+  const room = Array.from(rooms).find((r) => r.id === roomId);
+  if (!room) {
+    throw new Error("Room not found");
+  }
+  const newPlayer: Player = createPlayer(playerData);
+  room.players.push(newPlayer);
+  return room;
+};
+
 export const changeRoomSettings = (
   roomId: string,
   newSettings: Partial<Room["settings"]>,

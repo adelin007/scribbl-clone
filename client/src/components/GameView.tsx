@@ -2,7 +2,7 @@ import { Eraser, Paintbrush, PaintBucket, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { GameViewProps } from "../types/views";
 
-export const GameView = ({ playerName, playerColor }: GameViewProps) => {
+export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
@@ -24,6 +24,18 @@ export const GameView = ({ playerName, playerColor }: GameViewProps) => {
     "#ffffff",
   ];
   const eraserColor = "#ffffff";
+  const gamePlayers = room?.players?.length
+    ? room.players
+    : [
+        {
+          id: "local",
+          name: playerName || "Player",
+          color: playerColor || "#4f86c6",
+          score: 0,
+          guessed: false,
+          guessedAt: null,
+        },
+      ];
 
   const buildBrushCursor = (size: number, color: string) => {
     const radius = size / 2;
@@ -244,16 +256,15 @@ export const GameView = ({ playerName, playerColor }: GameViewProps) => {
         <aside className="panel game-players">
           <h3>Players</h3>
           <ul className="list">
-            <li className="list-item">
-              <span
-                className="avatar"
-                style={{ backgroundColor: playerColor }}
-              />
-              {playerName || "Player"}
-            </li>
-            <li className="list-item">Luna</li>
-            <li className="list-item">Kai</li>
-            <li className="list-item">Mara</li>
+            {gamePlayers.map((player) => (
+              <li className="list-item" key={player.id}>
+                <span
+                  className="avatar"
+                  style={{ backgroundColor: player.color }}
+                />
+                {player.name}
+              </li>
+            ))}
           </ul>
         </aside>
 

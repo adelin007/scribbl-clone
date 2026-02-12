@@ -1,5 +1,12 @@
 import { io } from "socket.io-client";
-import type { ChangeRoomSettingsData, GameEvent, PlayerData } from "../types";
+import { GameEvent } from "../types";
+import type {
+  ChangeRoomSettingsData,
+  CreateRoomData,
+  GameEventType,
+  JoinRoomData,
+  Room,
+} from "../types";
 
 const URL = "http://localhost:3000";
 
@@ -12,7 +19,7 @@ export type ClientConnectionEvent =
   | "disconnected"
   | "error";
 
-export type ClientActionEvent = GameEvent;
+export type ClientActionEvent = GameEventType;
 
 export type ClientEvent = ClientConnectionEvent | ClientActionEvent;
 
@@ -67,14 +74,10 @@ const emitClientAction = (event: ClientActionEvent, data?: unknown) => {
   socket.emit(event, data);
 };
 
-export const joinRoom = (data?: unknown) => {
-  emitClientAction("joinRoom", data);
+export const joinRoom = (data: JoinRoomData) => {
+  emitClientAction(GameEvent.JOIN_ROOM, data);
 };
 
-interface CreateRoomData extends PlayerData {
-  drawTime: number;
-  rounds: number;
-}
 export const createRoom = (data?: CreateRoomData) => {
   emitClientAction("createRoom", data);
 };
@@ -119,6 +122,14 @@ socket.on("connect_error", (error) => {
   emitClientEvent("error", { error });
 });
 
-socket.on("roomCreated", (data) => {
+socket.on("roomCreated", (data: Room) => {
   emitClientEvent("roomCreated", { data });
+});
+
+socket.on(GameEvent.JOINED_ROOM, (data: Room) => {
+  emitClientEvent(GameEvent.JOINED_ROOM, { data });
+});
+
+socket.on(GameEvent.PLAYER_JOINED, (data: Room) => {
+  emitClientEvent(GameEvent.PLAYER_JOINED, { data });
 });

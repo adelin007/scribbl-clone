@@ -1,3 +1,5 @@
+import type { Room } from "./index";
+
 export type GameState = "start" | "lobby" | "game" | "results";
 
 export type StartViewProps = {
@@ -18,6 +20,7 @@ export type StartViewProps = {
 };
 
 export type LobbyViewProps = {
+  room?: Room | null;
   playerName: string;
   playerColor: string;
   playerCount: number;
@@ -39,6 +42,7 @@ export type LobbyViewProps = {
 };
 
 export type GameViewProps = {
+  room?: Room | null;
   playerName: string;
   playerColor: string;
 };

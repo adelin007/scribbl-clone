@@ -29,7 +29,7 @@ export const GameEvent = {
   GUESS_MADE: "guessMade",
 } as const;
 
-export type GameEvent = (typeof GameEvent)[keyof typeof GameEvent];
+export type GameEventType = (typeof GameEvent)[keyof typeof GameEvent];
 
 export interface PlayerData {
   name: string;
@@ -42,7 +42,6 @@ export interface Player extends PlayerData {
   guessed: boolean;
   guessedAt: string | null; // ISO timestamp
 }
-
 export interface Room {
   id: string;
   hostId: string;
@@ -63,7 +62,16 @@ export interface ClientCreateRoomData extends PlayerData {
   rounds: number;
 }
 
+export interface CreateRoomData extends PlayerData {
+  drawTime: number;
+  rounds: number;
+}
 export interface ChangeRoomSettingsData {
   roomId: Room["id"];
   newSettings: Partial<RoomSettings>;
+}
+
+export interface JoinRoomData {
+  roomId: Room["id"];
+  playerData: PlayerData;
 }

@@ -5,7 +5,11 @@ import {
   type PlayerData,
   type RoomSettings,
 } from "../types/index.ts";
-import { changeRoomSettings, createRoom } from "../game/roomController.ts";
+import {
+  changeRoomSettings,
+  createRoom,
+  joinRoom,
+} from "../game/roomController.ts";
 
 export function setupSocket(io: Server) {
   io.on(GameEvent.CONNECT, (socket) => {
@@ -30,8 +34,26 @@ export function setupSocket(io: Server) {
       });
       console.log(`${data.name} created the room`);
       console.log("GAME_ROOM: ", newRoom);
+      socket.join(newRoom.id);
       socket.emit(GameEvent.ROOM_CREATED, newRoom);
     });
+
+    socket.on(
+      GameEvent.JOIN_ROOM,
+      async (data: { roomId: string; playerData: PlayerData }) => {
+        try {
+          const updatedRoom = joinRoom(data.roomId, data.playerData);
+          socket.join(updatedRoom.id);
+          io.to(updatedRoom.id).emit(GameEvent.PLAYER_JOINED, updatedRoom);
+          socket.emit(GameEvent.JOINED_ROOM, updatedRoom);
+        } catch (error) {
+          console.error(`Error joining room ${data.roomId}: `, error);
+          socket.emit("error", {
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      },
+    );
 
     socket.on(
       GameEvent.CHANGE_ROOM_SETTINGS,
