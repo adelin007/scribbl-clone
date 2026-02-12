@@ -177,3 +177,7 @@ socket.on(GameEvent.GUESS_MADE, (data) => {
 socket.on(GameEvent.ROUND_STARTED, (data: Room) => {
   emitClientEvent(GameEvent.ROUND_STARTED, { data });
 });
+
+socket.on("error", (error: { error: string }) => {
+  emitClientEvent("error", { error: new Error(error.error) });
+});

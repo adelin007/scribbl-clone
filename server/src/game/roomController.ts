@@ -1,4 +1,5 @@
 import type { Player, PlayerData, Room } from "../types/index.ts";
+import { RoomState } from "../types/index.ts";
 import { createPlayer } from "./gameController.ts";
 
 interface CreateRoomData {
@@ -59,6 +60,10 @@ export const joinRoom = (
   const room = Array.from(rooms).find((r) => r.id === roomId);
   if (!room) {
     throw new Error("Room not found");
+  }
+  // Prevent joining if game has already started
+  if (room.gameState && room.gameState.roomState !== RoomState.WAITING) {
+    throw new Error("Cannot join room: game has already started");
   }
   const newPlayer: Player = createPlayer(playerData, socketId, false);
   room.players.push(newPlayer);

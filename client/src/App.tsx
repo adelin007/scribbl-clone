@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ErrorView } from "./components/ErrorView";
 import { GameView } from "./components/GameView";
 import { LobbyView } from "./components/LobbyView";
 import { ResultsView } from "./components/ResultsView";
@@ -29,6 +30,7 @@ function App() {
   const [roomId, setRoomId] = useState(roomIdFromUrl || "");
   const [room, setRoom] = useState<Room | null>(null);
   const [gameEndedMessage, setGameEndedMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [showStartTooltip, setShowStartTooltip] = useState(false);
   const [isGuestReady, setIsGuestReady] = useState(false);
@@ -168,8 +170,16 @@ function App() {
         setDrawTime(String(room.settings.drawTime ?? ""));
         setRounds(String(room.settings.rounds ?? ""));
         setGameState("lobby");
+        setErrorMessage(null);
       },
     );
+
+    const unsubscribeError = onClientEvent("error", (payload) => {
+      const error = payload?.error;
+      if (error) {
+        setErrorMessage(error.message);
+      }
+    });
 
     const unsubscribePlayerJoined = onClientEvent(
       GameEvent.PLAYER_JOINED,
@@ -239,6 +249,7 @@ function App() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       unsubscribeRoomCreated();
       unsubscribeJoinedRoom();
+      unsubscribeError();
       unsubscribePlayerJoined();
       unsubscribePlayerLeft();
       unsubscribeGameStarted();
@@ -260,7 +271,19 @@ function App() {
       </header>
 
       <main className="app-main">
-        {gameState === "start" && (
+        {errorMessage ? (
+          <ErrorView
+            message={errorMessage}
+            onBack={() => {
+              setErrorMessage(null);
+              setGameState("start");
+              // Clear URL params to allow hosting a new session
+              window.history.replaceState({}, "", window.location.pathname);
+              setRoomId("");
+              setRoom(null);
+            }}
+          />
+        ) : gameState === "start" ? (
           <StartView
             playerName={playerName}
             playerColor={playerColor}
@@ -281,9 +304,7 @@ function App() {
             onRoundsChange={setRounds}
             onCreate={isGuest ? handleJoinRoom : handleCreateRoom}
           />
-        )}
-
-        {gameState === "lobby" && (
+        ) : gameState === "lobby" ? (
           <LobbyView
             room={room}
             playerName={playerName}
@@ -305,23 +326,19 @@ function App() {
             onInvite={handleInvite}
             onToggleReady={() => setIsGuestReady((prev) => !prev)}
           />
-        )}
-
-        {gameState === "game" && (
+        ) : gameState === "game" ? (
           <GameView
             room={room}
             playerName={playerName}
             playerColor={playerColor}
           />
-        )}
-
-        {gameState === "results" && (
+        ) : gameState === "results" ? (
           <ResultsView
             playerName={playerName}
             message={gameEndedMessage ?? undefined}
             onBackToStart={() => setGameState("start")}
           />
-        )}
+        ) : null}
       </main>
     </div>
   );
