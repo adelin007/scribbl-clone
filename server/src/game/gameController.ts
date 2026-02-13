@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { getRedis, setRedis } from "../lib/redisClient.ts";
 import {
   RoomState,
   type DrawDataPoint,
@@ -81,6 +82,17 @@ const transitionState = (room: Room, nextState: RoomState): void => {
     if (room.gameState.currentRound > room.settings.rounds) {
       room.gameState.currentRound = room.settings.rounds; // Cap at max rounds
       transitionState(room, RoomState.ENDED);
+      try {
+        // remove room from in-memory store and redis
+        console.log("GONNA_DELETE_ROOM: ", room.id);
+        deleteRoom(room.id);
+      } catch (err) {
+        console.warn(
+          `Failed to delete room ${room.id} on ENDED transition:`,
+          err,
+        );
+      }
+
       return;
     }
 
@@ -89,14 +101,25 @@ const transitionState = (room: Room, nextState: RoomState): void => {
   }
 
   if (nextState === RoomState.ENDED) {
+    // remove room from in-memory store and redis
+    console.log("GONNA_DELETE_NEXT_ROOM: ", room.id);
     room.gameState.timerStartedAt = null;
+    try {
+      // remove room from in-memory store and redis
+      deleteRoom(room.id);
+    } catch (err) {
+      console.warn(
+        `Failed to delete room ${room.id} on ENDED transition:`,
+        err,
+      );
+    }
   }
 };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const loadWords = (): string[] => {
+const loadWordsFromFile = (): string[] => {
   const wordsPath = path.join(__dirname, "..", "data", "words.csv");
   try {
     const fileContents = fs.readFileSync(wordsPath, "utf-8");
@@ -104,19 +127,54 @@ const loadWords = (): string[] => {
       .split(/\r?\n|,/)
       .map((word) => word.trim())
       .filter(Boolean);
-    if (parsedWords.length > 0) {
-      return parsedWords;
-    } else {
-      console.warn("No words found in words.csv, using fallback list.");
-      return [];
-    }
+    return parsedWords;
   } catch (error) {
-    console.warn("Failed to load words.csv, using fallback list.", error);
+    console.warn("Failed to load words.csv.", error);
     return [];
   }
 };
 
-const words = loadWords();
+let words: string[] = [];
+
+const initWords = async () => {
+  try {
+    const redisVal = await getRedis("words");
+    if (redisVal) {
+      const parsed = JSON.parse(redisVal) as string[];
+      if (parsed.length > 0) {
+        words = parsed;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to read words from redis", err);
+  }
+
+  const fileWords = loadWordsFromFile();
+  if (fileWords.length > 0) {
+    words = fileWords;
+    try {
+      await setRedis("words", JSON.stringify(words));
+    } catch (err) {
+      console.warn("Failed to persist words to redis", err);
+    }
+  } else {
+    // fallback defaults
+    words = [
+      "apple",
+      "banana",
+      "cat",
+      "dog",
+      "elephant",
+      "flower",
+      "guitar",
+      "house",
+    ];
+  }
+};
+
+// initialize words async but don't block module import
+void initWords();
 
 export const getRandomWord = () => {
   const randomIndex = Math.floor(Math.random() * words.length);
@@ -128,8 +186,6 @@ export const getRandomWords = (count: number = 3): string[] => {
   return shuffled.slice(0, Math.min(count, words.length));
 };
 
-//TODO - implement database to store rooms and players, for now we will use an in-memory store
-const players: Set<Player> = new Set();
 export const createPlayer = (
   playerData: PlayerData,
   socketId: string,
@@ -145,7 +201,7 @@ export const createPlayer = (
     guessed: false,
     guessedAt: null,
   };
-  players.add(newPlayer);
+
   return newPlayer;
 };
 
@@ -172,8 +228,6 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     1,
     room.players.map((p) => ({ playerId: p.id, score: 0 })),
   );
-
-  console.log("ROUND_SCORES: ", roundScores);
 
   room.gameState = {
     currentRound: 1,

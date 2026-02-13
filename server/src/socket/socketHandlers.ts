@@ -16,6 +16,7 @@ import {
   getRoomByPlayerSocketId,
   joinRoom,
 } from "../game/roomController.ts";
+import { setRedis, delRedis } from "../lib/redisClient.ts";
 import {
   handleDrawingAction,
   handleDrawTimeExpired,
@@ -32,6 +33,11 @@ const clearDrawTimer = (roomId: Room["id"]) => {
   if (timer) {
     clearTimeout(timer);
     drawTimers.delete(roomId);
+    try {
+      void delRedis(`drawtimer:${roomId}`);
+    } catch (err) {
+      console.warn("Failed to clear drawtimer in redis", err);
+    }
   }
 };
 
@@ -40,6 +46,14 @@ export function setupSocket(io: Server) {
     clearDrawTimer(room.id);
     const drawTimeMs = Math.max(0, room.settings.drawTime) * 1000;
     if (!drawTimeMs) return;
+
+    // persist expiry timestamp to redis
+    try {
+      const expiry = Date.now() + drawTimeMs;
+      void setRedis(`drawtimer:${room.id}`, String(expiry));
+    } catch (err) {
+      console.warn("Failed to persist drawtimer expiry to redis", err);
+    }
 
     const timer = setTimeout(() => {
       try {
@@ -224,6 +238,11 @@ export function setupSocket(io: Server) {
           data.drawingData,
         );
         io.to(data.roomId).emit(GameEvent.UPDATED_DRAWING_DATA, newRoomData);
+        try {
+          void setRedis(`room:${data.roomId}`, JSON.stringify(newRoomData));
+        } catch (err) {
+          console.warn("Failed to persist room drawing data to redis", err);
+        }
       },
     );
 
@@ -236,6 +255,11 @@ export function setupSocket(io: Server) {
         const updatedRoom = startGame(data.roomId, data.playerId);
         console.log("UPADTED_ROOM_AFTER_START: ", updatedRoom);
         io.to(updatedRoom.id).emit(GameEvent.GAME_STARTED, updatedRoom);
+        try {
+          void setRedis(`room:${updatedRoom.id}`, JSON.stringify(updatedRoom));
+        } catch (err) {
+          console.warn("Failed to persist started room to redis", err);
+        }
       },
     );
 
@@ -256,6 +280,14 @@ export function setupSocket(io: Server) {
         );
         io.to(updatedRoom.id).emit(GameEvent.WORD_SELECTED, updatedRoom);
         startDrawTimer(updatedRoom);
+        try {
+          void setRedis(`room:${updatedRoom.id}`, JSON.stringify(updatedRoom));
+        } catch (err) {
+          console.warn(
+            "Failed to persist room after word select to redis",
+            err,
+          );
+        }
       },
     );
 
@@ -268,6 +300,17 @@ export function setupSocket(io: Server) {
       }) => {
         const result = handleGuess(data.roomId, data.playerId, data.guess);
         io.to(data.roomId).emit(GameEvent.GUESS_MADE, result.room);
+
+        try {
+          if (result.room) {
+            void setRedis(
+              `room:${result.room.id}`,
+              JSON.stringify(result.room),
+            );
+          }
+        } catch (err) {
+          console.warn("Failed to persist room after guess to redis", err);
+        }
 
         // If round ended and transitioned to new round, emit ROUND_STARTED
         if (result.roundEnded) {
