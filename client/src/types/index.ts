@@ -133,12 +133,12 @@ export interface JoinRoomData {
 }
 
 export type ShapeType = "circle" | "triangle" | "rectangle";
-export type Tool = "brush" | "eraser" | "bucket" | "shape";
+export type Tool = "brush" | "shape";
 
 export interface DrawStrokeDataPoint {
   roomId: string;
   playerId: string;
-  tool: "brush" | "eraser" | "bucket";
+  tool: "brush";
   size: number;
   color: string;
   x: number;
