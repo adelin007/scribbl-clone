@@ -18,6 +18,8 @@ import {
 } from "../types";
 import type { GameViewProps } from "../types/views";
 
+const LOW_TIME_THRESHOLD = 20; // seconds
+
 export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -745,7 +747,9 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             </div>
           )}
         </div>
-        <div className="game-timer">
+        <div
+          className={`game-timer ${timeLeft !== null && timeLeft <= LOW_TIME_THRESHOLD ? "low" : ""}`}
+        >
           {timeLeft === null
             ? formatTime(room?.settings?.drawTime ?? 0)
             : formatTime(timeLeft)}

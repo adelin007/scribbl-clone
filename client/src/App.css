@@ -300,6 +300,12 @@
   border: 1px solid var(--border);
 }
 
+.game-timer.low {
+  color: #b91c1c;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
 .game-grid {
   display: grid;
   grid-template-columns: 330px 1fr 390px;
