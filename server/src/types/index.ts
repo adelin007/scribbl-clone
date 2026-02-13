@@ -60,7 +60,6 @@ export interface Room {
 export interface RoomSettings {
   maxPlayers: number;
   drawTime: number; // in seconds
-  roundTime: number; // in seconds
   rounds: number;
 }
 

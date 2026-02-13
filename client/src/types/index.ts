@@ -53,7 +53,6 @@ export interface Player extends PlayerData {
 export interface RoomSettings {
   maxPlayers: number;
   drawTime: number; // in seconds
-  roundTime: number; // in seconds
   rounds: number;
 }
 export interface HintLetters {
@@ -109,7 +108,6 @@ export interface Room {
 export interface RoomSettings {
   maxPlayers: number;
   drawTime: number; // in seconds
-  roundTime: number; // in seconds
   rounds: number;
 }
 

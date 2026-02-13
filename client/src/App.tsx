@@ -102,7 +102,6 @@ function App() {
       newSettings: {
         maxPlayers,
         drawTime: Number(value),
-        roundTime: Number(value),
         rounds: rounds ? Number(rounds) : undefined,
       },
     });
@@ -116,7 +115,6 @@ function App() {
       newSettings: {
         maxPlayers,
         drawTime: drawTime ? Number(drawTime) : undefined,
-        roundTime: drawTime ? Number(drawTime) : undefined,
         rounds: Number(value),
       },
     });

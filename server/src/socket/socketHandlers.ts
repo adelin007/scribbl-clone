@@ -82,7 +82,6 @@ export function setupSocket(io: Server) {
         socketId: socket.id,
         settings: {
           maxPlayers: 8, // Default max players, can be made dynamic later
-          roundTime: 60, // Default round time, can be made dynamic later
           drawTime: data.drawTime,
           rounds: data.rounds,
         },
