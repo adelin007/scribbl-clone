@@ -73,6 +73,13 @@ const transitionState = (room: Room, nextState: RoomState): void => {
       room.gameState.currentRound += 1;
     }
 
+    // If we've reached the max rounds, transition to ENDED
+    if (room.gameState.currentRound > room.settings.rounds) {
+      room.gameState.currentRound = room.settings.rounds; // Cap at max rounds
+      transitionState(room, RoomState.ENDED);
+      return;
+    }
+
     // Transition to PLAYER_CHOOSE_WORD and wait for drawer to select
     room.gameState.roomState = RoomState.PLAYER_CHOOSE_WORD;
   }
@@ -277,8 +284,14 @@ export const handleGuess = (
           });
         }
       }
+
       transitionState(room, RoomState.ROUND_END);
-      return { room, guessItem, roundEnded: true };
+
+      return {
+        room,
+        guessItem,
+        roundEnded: true,
+      };
     }
   }
 

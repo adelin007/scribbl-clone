@@ -1,6 +1,7 @@
 import type { Server } from "socket.io";
 import {
   GameEvent,
+  RoomState,
   type ClientCreateRoomData,
   type DrawDataPoint,
   type DrawDataUpdateType,
@@ -44,18 +45,18 @@ export function setupSocket(io: Server) {
             io.to(result.room.id).emit(GameEvent.PLAYER_LEFT, result.room);
             if (result.hostLeft) {
               io.to(result.room.id).emit(GameEvent.GAME_ENDED, {
-                roomId: result.room.id,
+                room: result.room,
                 reason: "hostLeft",
               });
             }
           } else if (result.hostLeft) {
             io.to(room.id).emit(GameEvent.GAME_ENDED, {
-              roomId: room.id,
+              room: result.room,
               reason: "hostLeft",
             });
           } else if (result.notEnoughPlayers) {
             io.to(room.id).emit(GameEvent.GAME_ENDED, {
-              roomId: room.id,
+              room: result.room,
               reason: "notEnoughPlayers",
             });
           }
@@ -123,23 +124,23 @@ export function setupSocket(io: Server) {
           io.to(result.room.id).emit(GameEvent.PLAYER_LEFT, result.room);
           if (result.hostLeft) {
             io.to(result.room.id).emit(GameEvent.GAME_ENDED, {
-              roomId: result.room.id,
+              room: result.room,
               reason: "hostLeft",
             });
           } else if (result.notEnoughPlayers) {
             io.to(result.room.id).emit(GameEvent.GAME_ENDED, {
-              roomId: result.room.id,
+              room: result.room,
               reason: "notEnoughPlayers",
             });
           }
         } else if (result.hostLeft) {
           io.to(room.id).emit(GameEvent.GAME_ENDED, {
-            roomId: room.id,
+            room: result.room,
             reason: "hostLeft",
           });
         } else if (result.notEnoughPlayers) {
           io.to(room.id).emit(GameEvent.GAME_ENDED, {
-            roomId: room.id,
+            room: result.room,
             reason: "notEnoughPlayers",
           });
         }
@@ -223,6 +224,12 @@ export function setupSocket(io: Server) {
         // If round ended and transitioned to new round, emit ROUND_STARTED
         if (result.roundEnded) {
           io.to(data.roomId).emit(GameEvent.ROUND_STARTED, result.room);
+        }
+        if (result.room.gameState?.roomState === RoomState.ENDED) {
+          io.to(data.roomId).emit(GameEvent.GAME_ENDED, {
+            room: result.room,
+            reason: "completed",
+          });
         }
       },
     );

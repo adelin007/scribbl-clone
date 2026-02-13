@@ -120,7 +120,7 @@ export interface ClientCreateRoomData extends PlayerData {
 
 export type GameEndedReason = "hostLeft" | "notEnoughPlayers";
 export interface GameEndedPayload {
-  roomId: Room["id"];
+  room: Room;
   reason: GameEndedReason;
 }
 

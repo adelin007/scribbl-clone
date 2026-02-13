@@ -251,6 +251,10 @@ function App() {
             "Not enough players to continue the game. The session ended.",
           );
           setGameState("results");
+        } else if (data.reason === "completed") {
+          setRoom(data.room);
+          setGameEndedMessage("Game completed! Here are the results.");
+          setGameState("results");
         }
       },
     );
