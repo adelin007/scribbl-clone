@@ -13,6 +13,7 @@ import {
 import {
   changeRoomSettings,
   createRoom,
+  deleteRoom,
   getRoomByPlayerSocketId,
   joinRoom,
 } from "../game/roomController.ts";
@@ -323,6 +324,9 @@ export function setupSocket(io: Server) {
             room: result.room,
             reason: "completed",
           });
+          // remove room from in-memory store and redis
+          console.log("GONNA_DELETE_NEXT_ROOM: ", data.roomId);
+          deleteRoom(data.roomId);
         }
       },
     );

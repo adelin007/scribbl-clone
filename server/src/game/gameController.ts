@@ -82,17 +82,6 @@ const transitionState = (room: Room, nextState: RoomState): void => {
     if (room.gameState.currentRound > room.settings.rounds) {
       room.gameState.currentRound = room.settings.rounds; // Cap at max rounds
       transitionState(room, RoomState.ENDED);
-      try {
-        // remove room from in-memory store and redis
-        console.log("GONNA_DELETE_ROOM: ", room.id);
-        deleteRoom(room.id);
-      } catch (err) {
-        console.warn(
-          `Failed to delete room ${room.id} on ENDED transition:`,
-          err,
-        );
-      }
-
       return;
     }
 
@@ -101,18 +90,7 @@ const transitionState = (room: Room, nextState: RoomState): void => {
   }
 
   if (nextState === RoomState.ENDED) {
-    // remove room from in-memory store and redis
-    console.log("GONNA_DELETE_NEXT_ROOM: ", room.id);
     room.gameState.timerStartedAt = null;
-    try {
-      // remove room from in-memory store and redis
-      deleteRoom(room.id);
-    } catch (err) {
-      console.warn(
-        `Failed to delete room ${room.id} on ENDED transition:`,
-        err,
-      );
-    }
   }
 };
 
