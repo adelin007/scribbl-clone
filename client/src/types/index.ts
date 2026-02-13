@@ -67,7 +67,10 @@ export interface GuessItem {
   correct: boolean;
   guessedAt: string; // ISO timestamp
 }
-
+export interface RoundScore {
+  playerId: string;
+  score: number;
+}
 export interface GameState {
   currentRound: number;
   currentDrawerId: string | null;
@@ -79,6 +82,9 @@ export interface GameState {
   timerStartedAt: string | null; // ISO timestamp
   drawingData: DrawDataPoint[]; // Store drawing data for replaying on client
   guesses: GuessItem[]; // Store guesses for replaying on client - this is the actual chat messages with guesses, correct or incorrect, along with timestamps
+  roundScores: {
+    [round: number]: RoundScore[];
+  };
 }
 
 export const RoomState = {

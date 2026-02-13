@@ -186,6 +186,7 @@ export function setupSocket(io: Server) {
           `Starting game for room ${data.roomId} by player ${data.playerId}`,
         );
         const updatedRoom = startGame(data.roomId, data.playerId);
+        console.log("UPADTED_ROOM_AFTER_START: ", updatedRoom);
         io.to(updatedRoom.id).emit(GameEvent.GAME_STARTED, updatedRoom);
       },
     );

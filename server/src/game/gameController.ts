@@ -137,6 +137,15 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
   if (!firstDrawer) {
     throw new Error("No players in the room to start the game");
   }
+
+  const roundScores = new Map<number, { playerId: string; score: number }[]>();
+  roundScores.set(
+    1,
+    room.players.map((p) => ({ playerId: p.id, score: 0 })),
+  );
+
+  console.log("ROUND_SCORES: ", roundScores);
+
   room.gameState = {
     currentRound: 1,
     currentDrawerId: firstDrawer.id,
@@ -148,7 +157,12 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     roomState: RoomState.PLAYER_CHOOSE_WORD,
     timerStartedAt: null,
     drawingData: [],
+    roundScores: {
+      1: room.players.map((p) => ({ playerId: p.id, score: 0 })),
+    },
   };
+
+  console.log("ROOM_GAME_STATE: ", room.gameState);
 
   return room;
 };
@@ -202,6 +216,9 @@ export const handleGuess = (
   if (player.guessed) {
     throw new Error("Player has already guessed correctly");
   }
+  if (room.gameState.currentDrawerId === playerId) {
+    throw new Error("Drawer cannot make guesses");
+  }
   const correct =
     guess.toLowerCase() === room.gameState.currentWord?.toLowerCase();
   const guessItem = {
@@ -219,6 +236,18 @@ export const handleGuess = (
     );
     player.guessed = true;
     player.guessedAt = guessItem.guessedAt;
+
+    // if (!room.gameState.roundScores.has(room.gameState.currentRound)) {
+    //   room.gameState.roundScores.set(room.gameState.currentRound, []);
+    // }
+
+    // room.gameState.roundScores.set(room.gameState.currentRound, [
+    //   ...(room.gameState.roundScores.get(room.gameState.currentRound) ?? []),
+    //   {
+    //     playerId,
+    //     score: player.score,
+    //   },
+    // ]);
 
     // Check if all non-drawer players have guessed correctly
     const nonDrawerPlayers = room.players.filter(

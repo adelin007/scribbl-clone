@@ -203,6 +203,7 @@ function App() {
     const unsubscribeGameStarted = onClientEvent(
       GameEvent.GAME_STARTED,
       (payload) => {
+        console.log("GAME_STARTED_DATA: ", payload);
         const room = payload?.data as Room | undefined;
         if (!room) return;
         setRoom(room);

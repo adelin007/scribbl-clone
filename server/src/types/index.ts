@@ -45,6 +45,7 @@ export interface Player extends PlayerData {
   score: number;
   guessed: boolean;
   guessedAt: string | null; // ISO timestamp
+  roundScore?: number; // Score for the current round (optional for backward compatibility)
 }
 
 export interface Room {
@@ -83,6 +84,11 @@ export interface HintLetters {
   index: number;
   letter: string;
 }
+
+export interface RoundScore {
+  playerId: string;
+  score: number;
+}
 export interface GameState {
   currentRound: number;
   currentDrawerId: string | null;
@@ -94,6 +100,9 @@ export interface GameState {
   timerStartedAt: string | null; // ISO timestamp
   drawingData: DrawDataPoint[]; // Store drawing data for replaying on client
   guesses: GuessItem[]; // Store guesses for replaying on client
+  roundScores: {
+    [round: number]: RoundScore[];
+  };
 }
 
 export interface ClientCreateRoomData extends PlayerData {

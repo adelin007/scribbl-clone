@@ -1,4 +1,5 @@
 import { Paintbrush, Trash2 } from "lucide-react";
+import { RoundScores } from "./RoundScores";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   onClientEvent,
@@ -58,19 +59,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     new Map<string, { x: number; y: number; timestamp: number }>(),
   );
   const pendingDrawingDataRef = useRef<DrawDataPoint[] | null>(null);
-  const gamePlayers = room?.players?.length
-    ? room.players
-    : [
-        {
-          id: "local",
-          socketId: "local",
-          name: playerName || "Player",
-          color: playerColor || "#4f86c6",
-          score: 0,
-          guessed: false,
-          guessedAt: null,
-        },
-      ];
+  const gamePlayers = room?.players?.length ? room.players : [];
   const localPlayer =
     room?.players?.find((player) => player.socketId === socket.id) ??
     room?.players?.find(
@@ -312,7 +301,6 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const replayDrawingData = useCallback(
     (drawingData: DrawDataPoint[]) => {
       const drawRemoteStroke = (data: DrawDataPoint) => {
-        console.log("DATA: ", data);
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext("2d");
@@ -504,7 +492,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     emitDrawingUpdate("CLEAR", { x: 0, y: 0 });
   };
 
-  // console.log("Rendering GameView with room:", room);
+  console.log("Rendering GameView with room:", room);
 
   return (
     <section className="view game-view">
@@ -541,6 +529,17 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
                 {roundEndDialog.word}
               </strong>
             </p>
+            <div style={{ margin: "2rem 0 1rem 0" }}>
+              <h3 style={{ color: "#2f2a24", marginBottom: "0.5rem" }}>
+                Scores
+              </h3>
+              <RoundScores
+                players={gamePlayers}
+                localPlayerId={localPlayerId}
+                roundScores={room?.gameState?.roundScores || {}}
+                currentRound={room?.gameState?.currentRound || 1}
+              />
+            </div>
             <button
               style={{
                 marginTop: "1rem",

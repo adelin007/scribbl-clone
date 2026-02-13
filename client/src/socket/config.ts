@@ -93,8 +93,11 @@ export const leaveRoom = () => {
   emitClientAction(GameEvent.LEAVE_ROOM);
 };
 
-export const startGame = (data?: unknown) => {
-  emitClientAction("startGame", data);
+export const startGame = (data: {
+  roomId: Room["id"];
+  playerId: Player["id"];
+}) => {
+  emitClientAction(GameEvent.START_GAME, data);
 };
 
 export const draw = (data?: unknown) => {
@@ -167,6 +170,7 @@ socket.on(GameEvent.PLAYER_LEFT, (data: Room) => {
 });
 
 socket.on(GameEvent.GAME_STARTED, (data: Room) => {
+  console.log("Game started with data:", data);
   emitClientEvent(GameEvent.GAME_STARTED, { data });
 });
 
