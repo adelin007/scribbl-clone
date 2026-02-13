@@ -500,6 +500,7 @@
 }
 
 .results-panel {
+  justify-items: center;
   width: min(520px, 100%);
   display: grid;
   gap: 16px;

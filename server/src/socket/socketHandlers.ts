@@ -18,13 +18,51 @@ import {
 } from "../game/roomController.ts";
 import {
   handleDrawingAction,
+  handleDrawTimeExpired,
   handleGuess,
   handlePlayerLeft,
   handleWordSelect,
   startGame,
 } from "../game/gameController.ts";
 
+const drawTimers = new Map<Room["id"], ReturnType<typeof setTimeout>>();
+
+const clearDrawTimer = (roomId: Room["id"]) => {
+  const timer = drawTimers.get(roomId);
+  if (timer) {
+    clearTimeout(timer);
+    drawTimers.delete(roomId);
+  }
+};
+
 export function setupSocket(io: Server) {
+  const startDrawTimer = (room: Room) => {
+    clearDrawTimer(room.id);
+    const drawTimeMs = Math.max(0, room.settings.drawTime) * 1000;
+    if (!drawTimeMs) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const result = handleDrawTimeExpired(room.id);
+        if (!result) return;
+        io.to(room.id).emit(GameEvent.ROUND_STARTED, result.room);
+        if (result.room.gameState?.roomState === RoomState.ENDED) {
+          io.to(room.id).emit(GameEvent.GAME_ENDED, {
+            room: result.room,
+            reason: "completed",
+          });
+        }
+      } catch (error) {
+        console.warn(
+          `Error handling drawTime expiry for room ${room.id}: `,
+          error,
+        );
+      }
+    }, drawTimeMs);
+
+    drawTimers.set(room.id, timer);
+  };
+
   io.on(GameEvent.CONNECT, (socket) => {
     console.log("a user connected: ", socket.id);
     socket.on(GameEvent.DISCONNECT, () => {
@@ -59,6 +97,13 @@ export function setupSocket(io: Server) {
               room: result.room,
               reason: "notEnoughPlayers",
             });
+          }
+          if (
+            result.hostLeft ||
+            result.notEnoughPlayers ||
+            result.roomDeleted
+          ) {
+            clearDrawTimer(room.id);
           }
         } catch (error) {
           console.warn(
@@ -143,6 +188,9 @@ export function setupSocket(io: Server) {
             reason: "notEnoughPlayers",
           });
         }
+        if (result.hostLeft || result.notEnoughPlayers || result.roomDeleted) {
+          clearDrawTimer(room.id);
+        }
       } catch (error) {
         console.warn(
           `Error handling leaveRoom for player ${player.id} in room ${room.id}: `,
@@ -207,6 +255,7 @@ export function setupSocket(io: Server) {
           data.word,
         );
         io.to(updatedRoom.id).emit(GameEvent.WORD_SELECTED, updatedRoom);
+        startDrawTimer(updatedRoom);
       },
     );
 
@@ -222,9 +271,11 @@ export function setupSocket(io: Server) {
 
         // If round ended and transitioned to new round, emit ROUND_STARTED
         if (result.roundEnded) {
+          clearDrawTimer(data.roomId);
           io.to(data.roomId).emit(GameEvent.ROUND_STARTED, result.room);
         }
         if (result.room.gameState?.roomState === RoomState.ENDED) {
+          clearDrawTimer(data.roomId);
           io.to(data.roomId).emit(GameEvent.GAME_ENDED, {
             room: result.room,
             reason: "completed",

@@ -32,6 +32,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const [brushColor, setBrushColor] = useState("#2f2a24");
   const [guessInput, setGuessInput] = useState("");
   const chatInputRef = useRef<HTMLInputElement | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [roundEndDialog, setRoundEndDialog] = useState<{
     show: boolean;
     word: string;
@@ -427,6 +428,42 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     }
   }, [room?.gameState?.guesses]);
 
+  useEffect(() => {
+    const drawTimeSeconds = room?.settings?.drawTime ?? 0;
+    const timerStartedAt = room?.gameState?.timerStartedAt;
+    const isDrawing = room?.gameState?.roomState === RoomState.DRAWING;
+
+    if (!isDrawing || !timerStartedAt || drawTimeSeconds <= 0) {
+      const resetTimeoutId = window.setTimeout(() => {
+        setTimeLeft(null);
+      }, 0);
+      return () => {
+        window.clearTimeout(resetTimeoutId);
+      };
+    }
+
+    const updateTimeLeft = () => {
+      const startedAtMs = new Date(timerStartedAt).getTime();
+      const elapsedSeconds = Math.floor((Date.now() - startedAtMs) / 1000);
+      const remainingSeconds = Math.max(0, drawTimeSeconds - elapsedSeconds);
+      setTimeLeft(remainingSeconds);
+    };
+
+    const initialTimeoutId = window.setTimeout(updateTimeLeft, 0);
+    const intervalId = window.setInterval(() => {
+      updateTimeLeft();
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(initialTimeoutId);
+      window.clearInterval(intervalId);
+    };
+  }, [
+    room?.settings?.drawTime,
+    room?.gameState?.timerStartedAt,
+    room?.gameState?.roomState,
+  ]);
+
   // Auto-focus the input when it becomes available to guess
   useEffect(() => {
     const canGuessNow =
@@ -525,6 +562,15 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     : isDrawingAllowed
       ? "Your turn to draw!"
       : "Guess the word!";
+
+  const formatTime = (seconds: number) => {
+    const safeSeconds = Math.max(0, seconds);
+    const minutes = Math.floor(safeSeconds / 60);
+    const remainingSeconds = safeSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(
+      remainingSeconds,
+    ).padStart(2, "0")}`;
+  };
 
   console.log("Rendering GameView with room:", room);
 
@@ -699,7 +745,11 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             </div>
           )}
         </div>
-        <div className="game-timer">01:32</div>
+        <div className="game-timer">
+          {timeLeft === null
+            ? formatTime(room?.settings?.drawTime ?? 0)
+            : formatTime(timeLeft)}
+        </div>
       </div>
 
       <div className="game-grid">

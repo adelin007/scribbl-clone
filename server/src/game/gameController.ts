@@ -44,6 +44,7 @@ const transitionState = (room: Room, nextState: RoomState): void => {
 
   // Handle ROUND_END transition
   if (nextState === RoomState.ROUND_END) {
+    room.gameState.timerStartedAt = null;
     // Reset all players' guessed status
     room.players.forEach((player) => {
       player.guessed = false;
@@ -82,6 +83,10 @@ const transitionState = (room: Room, nextState: RoomState): void => {
 
     // Transition to PLAYER_CHOOSE_WORD and wait for drawer to select
     room.gameState.roomState = RoomState.PLAYER_CHOOSE_WORD;
+  }
+
+  if (nextState === RoomState.ENDED) {
+    room.gameState.timerStartedAt = null;
   }
 };
 
@@ -199,6 +204,7 @@ export const handleWordSelect = (
   // Set the selected word and transition to DRAWING
   room.gameState.currentWord = selectedWord;
   room.gameState.wordChoices = [];
+  room.gameState.timerStartedAt = new Date().toISOString();
   transitionState(room, RoomState.DRAWING);
 
   return room;
@@ -378,6 +384,26 @@ export const handleDrawingAction = (
   }
 
   return room;
+};
+
+export const handleDrawTimeExpired = (roomId: Room["id"]) => {
+  const room = getRoomById(roomId);
+  if (!room) {
+    throw new Error("Room not found");
+  }
+  if (!room.gameState) {
+    throw new Error("Game state not found");
+  }
+  if (room.gameState.roomState !== RoomState.DRAWING) {
+    return null;
+  }
+
+  transitionState(room, RoomState.ROUND_END);
+
+  return {
+    room,
+    roundEnded: true,
+  };
 };
 
 export const endGame = (roomId: string) => {
