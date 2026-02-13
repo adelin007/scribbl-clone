@@ -3,6 +3,7 @@ import type { Player, GameState } from "../types";
 
 interface RoundScoresProps {
   players: Player[];
+  isRoundOver: boolean;
   localPlayerId?: string;
   roundScores: GameState["roundScores"];
   currentRound: number;
@@ -13,6 +14,7 @@ export const RoundScores: React.FC<RoundScoresProps> = ({
   localPlayerId,
   roundScores,
   currentRound,
+  isRoundOver,
 }) => {
   return (
     <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
@@ -20,15 +22,15 @@ export const RoundScores: React.FC<RoundScoresProps> = ({
         .slice()
         .sort((a, b) => b.score - a.score)
         .map((player) => {
-          // Get round score for this player for the current round
-          let roundScore: number = 0;
-          if (roundScores && currentRound && roundScores[currentRound]) {
-            const playerScoreEntry = roundScores[currentRound]?.find(
-              (entry) => entry.playerId === player.id,
-            );
-
-            roundScore = playerScoreEntry ? playerScoreEntry.score : 0;
+          const round = isRoundOver ? currentRound - 1 : currentRound; // Show previous round scores to the drawer, current round scores to guessers
+          if (!roundScores || !round || !roundScores[round]) {
+            return null;
           }
+
+          //   const playerRoundScore =
+          //     roundScores[round]?.find((entry) => entry.playerId === player.id)
+          //       ?.score ?? 0;
+
           return (
             <li
               key={player.id}
@@ -49,24 +51,24 @@ export const RoundScores: React.FC<RoundScoresProps> = ({
               </span>
               <span style={{ color: "#4f86c6", fontWeight: 600 }}>
                 {player.score}
-                <span
+                {/* <span
                   style={{
                     color:
-                      roundScore > 0
+                      playerRoundScore > 0
                         ? "#2ca02c"
-                        : roundScore < 0
+                        : playerRoundScore < 0
                           ? "#d62728"
                           : "#888",
                     fontWeight: 400,
                     marginLeft: 8,
                   }}
                 >
-                  {roundScore > 0
-                    ? `(+${roundScore})`
-                    : roundScore < 0
-                      ? `(${roundScore})`
+                  {playerRoundScore > 0
+                    ? `(+${playerRoundScore})`
+                    : playerRoundScore < 0
+                      ? `(${playerRoundScore})`
                       : `(0)`}
-                </span>
+                </span> */}
               </span>
             </li>
           );

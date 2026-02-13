@@ -158,7 +158,7 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     timerStartedAt: null,
     drawingData: [],
     roundScores: {
-      1: room.players.map((p) => ({ playerId: p.id, score: 0 })),
+      1: [],
     },
   };
 
@@ -230,24 +230,25 @@ export const handleGuess = (
   room.gameState.guesses.push(guessItem);
 
   if (correct) {
-    player.score += Math.max(
+    const roundScore = Math.max(
       10 - room.gameState.guesses.filter((g) => g.correct).length, // More points for earlier correct guesses
       1,
     );
+    player.score += roundScore;
     player.guessed = true;
     player.guessedAt = guessItem.guessedAt;
 
-    // if (!room.gameState.roundScores.has(room.gameState.currentRound)) {
-    //   room.gameState.roundScores.set(room.gameState.currentRound, []);
-    // }
+    if (!room.gameState.roundScores[room.gameState.currentRound]) {
+      room.gameState.roundScores[room.gameState.currentRound] = [];
+    }
 
-    // room.gameState.roundScores.set(room.gameState.currentRound, [
-    //   ...(room.gameState.roundScores.get(room.gameState.currentRound) ?? []),
-    //   {
-    //     playerId,
-    //     score: player.score,
-    //   },
-    // ]);
+    room.gameState.roundScores[room.gameState.currentRound] = [
+      ...(room.gameState.roundScores[room.gameState.currentRound] ?? []),
+      {
+        playerId,
+        score: roundScore,
+      },
+    ];
 
     // Check if all non-drawer players have guessed correctly
     const nonDrawerPlayers = room.players.filter(
@@ -256,6 +257,26 @@ export const handleGuess = (
     const allGuessed = nonDrawerPlayers.every((p) => p.guessed);
 
     if (allGuessed) {
+      // Award drawer points: half of the highest round score (rounded down), times number of correct guessers
+      const roundScoresArr =
+        room.gameState.roundScores[room.gameState.currentRound] || [];
+      const highestScore = roundScoresArr.reduce(
+        (max, s) => (s.score > max ? s.score : max),
+        0,
+      );
+      const drawerScore = Math.floor(highestScore / 2) * roundScoresArr.length;
+      if (drawerScore > 0 && room.gameState.currentDrawerId) {
+        const drawer = room.players.find(
+          (p) => p.id === room?.gameState?.currentDrawerId,
+        );
+        if (drawer && room.gameState.roundScores[room.gameState.currentRound]) {
+          drawer.score += drawerScore;
+          room.gameState.roundScores[room.gameState.currentRound]!.push({
+            playerId: drawer.id,
+            score: drawerScore,
+          });
+        }
+      }
       transitionState(room, RoomState.ROUND_END);
       return { room, guessItem, roundEnded: true };
     }

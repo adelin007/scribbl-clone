@@ -31,6 +31,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const [brushSize, setBrushSize] = useState(8);
   const [brushColor, setBrushColor] = useState("#2f2a24");
   const [guessInput, setGuessInput] = useState("");
+  const chatInputRef = useRef<HTMLInputElement | null>(null);
   const [roundEndDialog, setRoundEndDialog] = useState<{
     show: boolean;
     word: string;
@@ -65,6 +66,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     room?.players?.find(
       (player) => player.name === playerName && player.color === playerColor,
     );
+
   const isDrawingAllowed = Boolean(
     room?.gameState?.currentDrawerId &&
     localPlayer?.id === room.gameState.currentDrawerId,
@@ -211,16 +213,22 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
 
   const handleGuessSubmit = () => {
     if (!guessInput.trim() || !activeRoomId || !localPlayerId) return;
+    const inputElement = chatInputRef.current;
     sendGuess({
       roomId: activeRoomId,
       playerId: localPlayerId,
       guess: guessInput.trim(),
     });
     setGuessInput("");
+    // Keep focus after state update
+    requestAnimationFrame(() => {
+      inputElement?.focus();
+    });
   };
 
   const handleGuessKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
+      e.preventDefault();
       handleGuessSubmit();
     }
   };
@@ -419,6 +427,18 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     }
   }, [room?.gameState?.guesses]);
 
+  // Auto-focus the input when it becomes available to guess
+  useEffect(() => {
+    const canGuessNow =
+      !isDrawingAllowed &&
+      !localPlayer?.guessed &&
+      room?.gameState?.roomState === RoomState.DRAWING;
+
+    if (canGuessNow && chatInputRef.current) {
+      chatInputRef.current.focus();
+    }
+  }, [isDrawingAllowed, localPlayer?.guessed, room?.gameState?.roomState]);
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingAllowed) return;
     if (!canvasReady) return;
@@ -492,6 +512,20 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     emitDrawingUpdate("CLEAR", { x: 0, y: 0 });
   };
 
+  const canGuess =
+    !isDrawingAllowed &&
+    !localPlayer?.guessed &&
+    room?.gameState?.roomState === RoomState.DRAWING;
+
+  const isPlayerChoosingWord =
+    room?.gameState?.roomState === RoomState.PLAYER_CHOOSE_WORD;
+
+  const headerStatus = isPlayerChoosingWord
+    ? "Choosing word..."
+    : isDrawingAllowed
+      ? "Your turn to draw!"
+      : "Guess the word!";
+
   console.log("Rendering GameView with room:", room);
 
   return (
@@ -536,6 +570,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
               <RoundScores
                 players={gamePlayers}
                 localPlayerId={localPlayerId}
+                isRoundOver={room?.gameState?.roomState !== RoomState.DRAWING}
                 roundScores={room?.gameState?.roundScores || {}}
                 currentRound={room?.gameState?.currentRound || 1}
               />
@@ -639,8 +674,8 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
 
       <div className="game-topbar panel">
         <div>
-          <strong>Round 1</strong>
-          <span className="muted"> / 3</span>
+          <strong>Round {room?.gameState?.currentRound || 1}</strong>
+          <span className="muted"> / {room?.settings?.rounds || 3}</span>
         </div>
         <div
           className="game-topbar-center"
@@ -651,7 +686,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             gap: "0.5rem",
           }}
         >
-          <div>{isDrawingAllowed ? "Draw this word:" : "Guess the word!"}</div>
+          <div>{headerStatus}</div>
           {isDrawingAllowed && room?.gameState?.currentWord && (
             <div
               style={{
@@ -859,7 +894,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
               Congrats, you guessed!
             </div>
           )}
-          {!isDrawingAllowed && !localPlayer?.guessed && (
+          {canGuess && (
             <input
               className="chat-input"
               type="text"
@@ -867,6 +902,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
               value={guessInput}
               onChange={(e) => setGuessInput(e.target.value)}
               onKeyDown={handleGuessKeyDown}
+              ref={chatInputRef}
             />
           )}
         </aside>
