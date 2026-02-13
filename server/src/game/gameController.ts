@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   RoomState,
   type DrawDataPoint,
@@ -90,16 +93,30 @@ const transitionState = (room: Room, nextState: RoomState): void => {
   }
 };
 
-const words = [
-  "apple",
-  "banana",
-  "cat",
-  "dog",
-  "elephant",
-  "flower",
-  "guitar",
-  "house",
-];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const loadWords = (): string[] => {
+  const wordsPath = path.join(__dirname, "..", "data", "words.csv");
+  try {
+    const fileContents = fs.readFileSync(wordsPath, "utf-8");
+    const parsedWords = fileContents
+      .split(/\r?\n|,/)
+      .map((word) => word.trim())
+      .filter(Boolean);
+    if (parsedWords.length > 0) {
+      return parsedWords;
+    } else {
+      console.warn("No words found in words.csv, using fallback list.");
+      return [];
+    }
+  } catch (error) {
+    console.warn("Failed to load words.csv, using fallback list.", error);
+    return [];
+  }
+};
+
+const words = loadWords();
 
 export const getRandomWord = () => {
   const randomIndex = Math.floor(Math.random() * words.length);
