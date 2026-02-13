@@ -48,7 +48,7 @@ export type GameViewProps = {
 };
 
 export type ResultsViewProps = {
-  playerName: string;
+  players: Room["players"];
   message?: string;
   onBackToStart: () => void;
 };

@@ -345,7 +345,7 @@ function App() {
           />
         ) : gameState === "results" ? (
           <ResultsView
-            playerName={playerName}
+            players={room?.players ?? []}
             message={gameEndedMessage ?? undefined}
             onBackToStart={() => setGameState("start")}
           />

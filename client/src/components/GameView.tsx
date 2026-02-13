@@ -556,7 +556,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ marginTop: 0, color: "#2f2a24" }}>Round Ended!</h2>
+            <h2 style={{ marginTop: 0, color: "#2f2a24" }}>🎉🎉🎉</h2>
             <p style={{ fontSize: "1.2rem", margin: "1rem 0" }}>
               The word was:{" "}
               <strong style={{ color: "#4f86c6", fontSize: "1.5rem" }}>
