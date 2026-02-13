@@ -328,7 +328,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
           ? Date.now()
           : Date.parse(data.timestamp);
         const shouldBreakStroke =
-          lastPoint && Math.abs(timestamp - lastPoint.timestamp) > 200;
+          lastPoint && Math.abs(timestamp - lastPoint.timestamp) > 100;
 
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
