@@ -10,12 +10,14 @@ export const ResultsView = ({
       <h2>Results</h2>
       {message && <p className="muted">{message}</p>}
       <ol className="results-list">
-        {players.map((player) => (
-          <li key={player.id}>
-            {player.name || "Player"}{" "}
-            <span className="muted">- {player.score} pts</span>
-          </li>
-        ))}
+        {players
+          .sort((a, b) => b.score - a.score)
+          .map((player) => (
+            <li key={player.id}>
+              {player.name || "Player"}{" "}
+              <span className="muted">- {player.score} pts</span>
+            </li>
+          ))}
       </ol>
       <div className="flex justify-center justify-items-center">
         <button className="btn primary" onClick={onBackToStart}>
