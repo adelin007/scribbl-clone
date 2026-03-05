@@ -176,7 +176,6 @@ socket.on(GameEvent.PLAYER_LEFT, (data: Room) => {
 });
 
 socket.on(GameEvent.GAME_STARTED, (data: Room) => {
-  console.log("Game started with data:", data);
   emitClientEvent(GameEvent.GAME_STARTED, { data });
 });
 

@@ -224,8 +224,6 @@ export const startGame = (roomId: Room["id"], playerId: Player["id"]) => {
     },
   };
 
-  console.log("ROOM_GAME_STATE: ", room.gameState);
-
   return room;
 };
 

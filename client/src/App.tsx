@@ -175,7 +175,6 @@ function App() {
     const unsubscribeError = onClientEvent("error", (payload) => {
       const error = payload?.error;
       if (error) {
-        console.log("ERROR: ", error);
         setErrorMessage(error.message);
       }
     });
@@ -192,7 +191,6 @@ function App() {
     const unsubscribePlayerLeft = onClientEvent(
       GameEvent.PLAYER_LEFT,
       (payload) => {
-        console.log("Player left event received: ", payload);
         const room = payload?.data as Room | undefined;
         if (!room) return;
         setRoom(room);
@@ -202,7 +200,6 @@ function App() {
     const unsubscribeGameStarted = onClientEvent(
       GameEvent.GAME_STARTED,
       (payload) => {
-        console.log("GAME_STARTED_DATA: ", payload);
         const room = payload?.data as Room | undefined;
         if (!room) return;
         setRoom(room);
