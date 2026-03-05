@@ -175,6 +175,7 @@ function App() {
     const unsubscribeError = onClientEvent("error", (payload) => {
       const error = payload?.error;
       if (error) {
+        console.log("ERROR: ", error);
         setErrorMessage(error.message);
       }
     });
