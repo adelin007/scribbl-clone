@@ -1,4 +1,6 @@
-:80 {
+# use :80 when running locally, and scribble.adelinflavius.me in production (Caddy will handle TLS and proxy to the backend)
+
+scribble.adelinflavius.me {
     # Proxy socket.io websocket + polling traffic to the server on the Docker network
     @socket path /socket.io* /socket.io
     handle @socket {
