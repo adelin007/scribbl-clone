@@ -577,8 +577,6 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     ).padStart(2, "0")}`;
   };
 
-  console.log("Rendering GameView with room:", room);
-
   return (
     <section className="view game-view">
       {roundEndDialog.show && (

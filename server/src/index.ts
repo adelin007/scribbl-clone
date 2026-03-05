@@ -6,7 +6,7 @@ import { setupSocket } from "./socket/socketHandlers.ts";
 console.log("Starting server...");
 const io = new Server(3000, {
   cors: {
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "http://localhost:5175"],
     credentials: true,
   },
 });
