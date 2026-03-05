@@ -6,9 +6,9 @@ services:
     image: scribbl-server:latest
     restart: unless-stopped
     environment:
-      # Optionally set CLIENT_URL to restrict CORS, default is '*'
-      CLIENT_URL: "https://scribble.adelinflavius.me"
-      REDIS_URL: "redis://redis:6379"
+      # Read values from .env (defaults provided). Set these in your VPS .env.
+      CLIENT_URL: "${CLIENT_URL:-http://localhost}"
+      REDIS_URL: "${REDIS_URL:-redis://redis:6379}"
     networks:
       - scribbl-net
 
@@ -17,15 +17,17 @@ services:
       context: ./client
       args:
         # At build time you can inject a socket URL; however the client will default
-        # at runtime to the same host on port 3000 if VITE_SOCKET_URL is not provided.
-        VITE_SOCKET_URL: "https://scribble.adelinflavius.me"
+        # at runtime the client will default to the current origin (recommended)
+        # To force a specific socket URL set VITE_SOCKET_URL here during build.
+        # Pass build-time override; leave empty to let the client default to runtime origin
+        VITE_SOCKET_URL: "${VITE_SOCKET_URL:-}"
     image: scribbl-client:latest
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
     networks:
       - scribbl-net
 

@@ -1,21 +1,21 @@
-scribble.adelinflavius.me {
-  # Serve static files built by Vite
-    root * /srv
-    encode gzip
-
-    # Proxy socket.io websocket traffic to the server service on the Docker network
-    @socket path /socket.io/*
-    reverse_proxy @socket server:3000 {
-        # mirror headers from nginx config
+:80 {
+    # Proxy socket.io websocket + polling traffic to the server on the Docker network
+    @socket path /socket.io* /socket.io
+    handle @socket {
+      reverse_proxy server:3000 {
         header_up Host {host}
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-      # forward the original Origin header so Socket.IO/CORS checks work
-      header_up Origin {>Origin}
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+      }
     }
 
-    # SPA fallback then file server
-    try_files {path} /index.html
-    file_server
+    # Serve static files and SPA fallback for all non-socket paths
+    @notSocket not path /socket.io* /socket.io
+    handle @notSocket {
+      root * /srv
+      encode gzip
+      try_files {path} /index.html
+      file_server
+    }
 }

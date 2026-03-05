@@ -16,10 +16,13 @@ const io = new Server(3000, {
   cors: {
     origin: (origin, callback) => {
       // allow non-browser tools (no origin)
+      console.log("CORS check, origin=", origin, "allowed=", allowedOrigins);
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        console.log("CORS allowed for origin:", origin);
         return callback(null, true);
       }
+      console.warn("CORS denied for origin:", origin);
       return callback(new Error("CORS origin denied"));
     },
     credentials: true,

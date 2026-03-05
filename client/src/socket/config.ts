@@ -11,10 +11,11 @@ import type {
   Room,
 } from "../types";
 
+// Default to the current origin so the browser talks to the same host
+// (Caddy will proxy `/socket.io` to the backend). Use VITE_SOCKET_URL
+// to override at build time if needed.
 const runtimeDefault =
-  typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : "http://localhost:3000";
+  typeof window !== "undefined" ? window.location.origin : "http://localhost";
 
 const URL = import.meta.env.VITE_SOCKET_URL || runtimeDefault;
 
