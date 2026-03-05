@@ -30,6 +30,9 @@ services:
       NODE_ENV: production
     networks:
       - scribbl-net
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
 
   redis:
     image: redis:7-alpine
@@ -45,4 +48,8 @@ networks:
 
 volumes:
   redis-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
     driver: local
