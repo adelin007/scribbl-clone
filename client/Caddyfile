@@ -1,0 +1,13 @@
+scribble.adelinflavius.me {
+    # Serve static files built by Vite
+    root * /srv
+    encode gzip
+
+    # Proxy socket.io websocket traffic to the server service on the Docker network
+    @socket path /socket.io/*
+    reverse_proxy @socket server:3000
+
+    # SPA fallback then file server
+    try_files {path} /index.html
+    file_server
+}
