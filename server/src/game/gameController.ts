@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { getRedis, setRedis } from "../lib/redisClient.ts";
+import { getRedis, setRedis } from "../lib/redisClient";
 import {
   RoomState,
   type DrawDataPoint,
@@ -9,8 +10,8 @@ import {
   type Player,
   type PlayerData,
   type Room,
-} from "../types/index.ts";
-import { deleteRoom, getRoomById, rooms } from "./roomController.ts";
+} from "../types/index";
+import { deleteRoom, getRoomById, rooms } from "./roomController";
 
 // State Machine Definition
 const STATE_TRANSITIONS: Record<RoomState, RoomState[]> = {
@@ -170,7 +171,7 @@ export const createPlayer = (
   isHost: boolean,
 ): Player => {
   const newPlayer: Player = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     socketId,
     isHost,
     name: playerData.name,

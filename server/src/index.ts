@@ -1,12 +1,13 @@
 import { createServer } from "http";
 
 import { Server } from "socket.io";
-import { setupSocket } from "./socket/socketHandlers.ts";
+import { setupSocket } from "./socket/socketHandlers";
 
 console.log("Starting server...");
+const allowedOrigin = process.env.CLIENT_URL ?? "*";
 const io = new Server(3000, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:5175"],
+    origin: allowedOrigin,
     credentials: true,
   },
 });

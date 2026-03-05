@@ -9,15 +9,15 @@ import {
   type PlayerData,
   type Room,
   type RoomSettings,
-} from "../types/index.ts";
+} from "../types/index";
 import {
   changeRoomSettings,
   createRoom,
   deleteRoom,
   getRoomByPlayerSocketId,
   joinRoom,
-} from "../game/roomController.ts";
-import { setRedis, delRedis } from "../lib/redisClient.ts";
+} from "../game/roomController";
+import { setRedis, delRedis } from "../lib/redisClient";
 import {
   handleDrawingAction,
   handleDrawTimeExpired,
@@ -25,7 +25,7 @@ import {
   handlePlayerLeft,
   handleWordSelect,
   startGame,
-} from "../game/gameController.ts";
+} from "../game/gameController";
 
 const drawTimers = new Map<Room["id"], ReturnType<typeof setTimeout>>();
 

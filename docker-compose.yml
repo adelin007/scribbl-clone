@@ -1,0 +1,45 @@
+version: "3.8"
+services:
+  server:
+    build:
+      context: ./server
+    image: scribbl-server:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Optionally set CLIENT_URL to restrict CORS, default is '*'
+      CLIENT_URL: "*"
+      REDIS_URL: "redis://redis:6379"
+    networks:
+      - scribbl-net
+
+  client:
+    build:
+      context: ./client
+      args:
+        # At build time you can inject a socket URL; however the client will default
+        # at runtime to the same host on port 3000 if VITE_SOCKET_URL is not provided.
+        VITE_SOCKET_URL: ""
+    image: scribbl-client:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - scribbl-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - scribbl-net
+
+networks:
+  scribbl-net:
+    driver: bridge
+
+volumes:
+  redis-data:
+    driver: local

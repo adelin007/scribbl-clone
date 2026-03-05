@@ -1,13 +1,9 @@
-import type { Player, PlayerData, Room } from "../types/index.ts";
-import { RoomState } from "../types/index.ts";
-import { createPlayer } from "./gameController.ts";
-import {
-  setRedis,
-  delRedis,
-  getRedis,
-  connectRedis,
-} from "../lib/redisClient.ts";
-import redisClient from "../lib/redisClient.ts";
+import type { Player, PlayerData, Room } from "../types/index";
+import { randomUUID } from "node:crypto";
+import { RoomState } from "../types/index";
+import { createPlayer } from "./gameController";
+import { setRedis, delRedis, getRedis, connectRedis } from "../lib/redisClient";
+import redisClient from "../lib/redisClient";
 
 interface CreateRoomData {
   host: PlayerData;
@@ -87,7 +83,7 @@ export const createRoom = (data: CreateRoomData) => {
   console.log("Creating room with data: ", data);
   const newPlayer: Player = createPlayer(data.host, data.socketId, true);
   const newRoom: Room = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     hostId: newPlayer.id,
     socketId: data.socketId,
     players: [newPlayer],

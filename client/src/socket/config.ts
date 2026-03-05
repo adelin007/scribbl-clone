@@ -11,7 +11,12 @@ import type {
   Room,
 } from "../types";
 
-const URL = "http://localhost:3000";
+const runtimeDefault =
+  typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    : "http://localhost:3000";
+
+const URL = import.meta.env.VITE_SOCKET_URL || runtimeDefault;
 
 export const socket = io(URL, { autoConnect: false });
 
