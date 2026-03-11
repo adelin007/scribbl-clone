@@ -10,7 +10,9 @@ const allowedOrigins = rawOrigins
   .map((s) => s.trim())
   .filter(Boolean);
 
-const io = new Server(3000, {
+const httpServer = createServer();
+
+const io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
       // allow non-browser tools (no origin)
@@ -27,3 +29,7 @@ const io = new Server(3000, {
 });
 
 setupSocket(io);
+
+httpServer.listen(3000, () => {
+  console.log("Socket.IO server listening on port 3000");
+});
