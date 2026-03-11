@@ -21,6 +21,7 @@ const URL = import.meta.env.VITE_SOCKET_URL || runtimeDefault;
 
 export const socket = io(URL, {
   autoConnect: false,
+  transports: ["websocket"], // prefer websocket to avoid XHR polling fallback errors
 });
 
 export type ClientConnectionEvent =
@@ -158,7 +159,10 @@ socket.on("disconnect", (reason) => {
 });
 
 socket.on("connect_error", (error) => {
-  emitClientEvent("error", { error });
+  // surface a clearer Error object to client listeners
+  const err = error instanceof Error ? error : new Error(String(error));
+  console.warn("socket connect_error:", err.message || err);
+  emitClientEvent("error", { error: err });
 });
 
 socket.on("roomCreated", (data: Room) => {
