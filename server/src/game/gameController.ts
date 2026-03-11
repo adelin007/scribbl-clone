@@ -423,7 +423,8 @@ export const handleDrawingAction = (
     throw new Error("Player not found in the room");
   }
   if (room.gameState?.currentDrawerId !== playerId) {
-    throw new Error("Only the current drawer can perform drawing actions");
+    console.warn("Only the current drawer can perform drawing actions");
+    return room;
   }
   if (action === "DRAW") {
     room.gameState?.drawingData.push(drawingData);
