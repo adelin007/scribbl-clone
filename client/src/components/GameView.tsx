@@ -65,7 +65,6 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   const remotePointsRef = useRef(
     new Map<string, { x: number; y: number; timestamp: number }>(),
   );
-  const drawnCountRef = useRef(0);
   const pendingDrawingDataRef = useRef<DrawDataPoint[] | null>(null);
   // Buffer drawing points locally and emit at a fixed interval to reduce
   // network churn when deployed.
@@ -373,60 +372,56 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     remotePointsRef.current.clear();
   }, []);
 
-  const drawRemoteStroke = useCallback(
-    (data: DrawDataPoint) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      if (data.tool === "shape") {
-        drawShape(ctx, data.shape.kind, data.shape.start, data.shape.end, {
-          color: data.color,
-          size: data.size,
-        });
-        return;
-      }
-      const x = data.x;
-      const y = data.y;
-      const lastPoint = remotePointsRef.current.get(data.playerId);
-      const strokeColor = data.color;
-      const timestamp = Number.isNaN(Date.parse(data.timestamp))
-        ? Date.now()
-        : Date.parse(data.timestamp);
-      const shouldBreakStroke =
-        lastPoint && Math.abs(timestamp - lastPoint.timestamp) > 100;
-
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.lineWidth = data.size;
-      ctx.strokeStyle = strokeColor;
-
-      if (lastPoint && !shouldBreakStroke) {
-        ctx.beginPath();
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      } else {
-        ctx.beginPath();
-        ctx.fillStyle = strokeColor;
-        ctx.arc(x, y, data.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      remotePointsRef.current.set(data.playerId, { x, y, timestamp });
-    },
-    [drawShape],
-  );
-
   const replayDrawingData = useCallback(
     (drawingData: DrawDataPoint[]) => {
-      // Draw entire provided array (used when initializing or when the
-      // server sends a cleared history that needs full redraw).
+      const drawRemoteStroke = (data: DrawDataPoint) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        if (data.tool === "shape") {
+          drawShape(ctx, data.shape.kind, data.shape.start, data.shape.end, {
+            color: data.color,
+            size: data.size,
+          });
+          return;
+        }
+        const x = data.x;
+        const y = data.y;
+        const lastPoint = remotePointsRef.current.get(data.playerId);
+        const strokeColor = data.color;
+        const timestamp = Number.isNaN(Date.parse(data.timestamp))
+          ? Date.now()
+          : Date.parse(data.timestamp);
+        const shouldBreakStroke =
+          lastPoint && Math.abs(timestamp - lastPoint.timestamp) > 100;
+
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = data.size;
+        ctx.strokeStyle = strokeColor;
+
+        if (lastPoint && !shouldBreakStroke) {
+          ctx.beginPath();
+          ctx.moveTo(lastPoint.x, lastPoint.y);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.fillStyle = strokeColor;
+          ctx.arc(x, y, data.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        remotePointsRef.current.set(data.playerId, { x, y, timestamp });
+      };
+
       clearCanvas();
-      drawingData.forEach((data) => drawRemoteStroke(data));
-      drawnCountRef.current = drawingData.length;
+      drawingData.forEach((data) => {
+        drawRemoteStroke(data);
+      });
     },
-    [clearCanvas, drawRemoteStroke],
+    [clearCanvas, drawShape],
   );
 
   useEffect(() => {
@@ -441,30 +436,14 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
           return;
         }
 
-        // Draw incrementally: only render new points to avoid redrawing
-        // the entire history on every update which becomes slow as the
-        // history grows.
-        const prevCount = drawnCountRef.current;
-        const newCount = drawingData.length;
-        if (newCount < prevCount) {
-          // History was cleared/truncated (e.g., CLEAR action). Full redraw.
-          replayDrawingData(drawingData);
-        } else if (newCount === prevCount) {
-          // nothing new
-          return;
-        } else {
-          for (let i = prevCount; i < newCount; i++) {
-            drawRemoteStroke(drawingData[i]);
-          }
-          drawnCountRef.current = newCount;
-        }
+        replayDrawingData(drawingData);
       },
     );
 
     return () => {
       unsubscribe();
     };
-  }, [canvasReady, replayDrawingData, drawRemoteStroke]);
+  }, [canvasReady, replayDrawingData]);
 
   useEffect(() => {
     if (!canvasReady) return;
