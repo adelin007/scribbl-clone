@@ -66,6 +66,11 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     new Map<string, { x: number; y: number; timestamp: number }>(),
   );
   const pendingDrawingDataRef = useRef<DrawDataPoint[] | null>(null);
+  // Buffer drawing points locally and emit at a fixed interval to reduce
+  // network churn when deployed.
+  const drawBufferRef = useRef<DrawDataPoint[]>([]);
+  const drawSenderIntervalRef = useRef<number | null>(null);
+  const DRAW_EMIT_INTERVAL_MS = 33; // ~30Hz
   const gamePlayers = room?.players?.length ? room.players : [];
   const localPlayer =
     room?.players?.find((player) => player.socketId === socket.id) ??
@@ -200,21 +205,76 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     if (!activeRoomId || !localPlayerId) return;
     const tool =
       toolOverride ?? (isShapeTool(activeTool) ? "brush" : activeTool);
-    sendDrawingData({
-      roomId: activeRoomId,
-      playerId: localPlayerId,
-      action,
-      drawingData: {
+    // For DRAW actions, buffer locally and emit at a regular interval.
+    // Keep CLEAR and other non-DRAW actions immediate.
+    if (action !== "DRAW") {
+      sendDrawingData({
         roomId: activeRoomId,
         playerId: localPlayerId,
-        tool,
-        size: brushSizeRef.current,
-        color: brushColorRef.current,
-        x: point.x,
-        y: point.y,
-        timestamp: new Date().toISOString(),
-      },
-    });
+        action,
+        drawingData: {
+          roomId: activeRoomId,
+          playerId: localPlayerId,
+          tool,
+          size: brushSizeRef.current,
+          color: brushColorRef.current,
+          x: point.x,
+          y: point.y,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      return;
+    }
+
+    const drawingPoint: DrawDataPoint = {
+      roomId: activeRoomId,
+      playerId: localPlayerId,
+      tool,
+      size: brushSizeRef.current,
+      color: brushColorRef.current,
+      x: point.x,
+      y: point.y,
+      timestamp: new Date().toISOString(),
+    };
+
+    drawBufferRef.current.push(drawingPoint);
+  };
+
+  const startDrawEmitter = () => {
+    if (drawSenderIntervalRef.current) return;
+    drawSenderIntervalRef.current = window.setInterval(() => {
+      const buf = drawBufferRef.current;
+      if (!buf.length) return;
+      // Send the most recent point in the buffer to keep updates compact.
+      const pointToSend = buf[buf.length - 1];
+      drawBufferRef.current = [];
+      if (!activeRoomId || !localPlayerId) return;
+      sendDrawingData({
+        roomId: activeRoomId,
+        playerId: localPlayerId,
+        action: "DRAW",
+        drawingData: pointToSend,
+      });
+    }, DRAW_EMIT_INTERVAL_MS);
+  };
+
+  const stopDrawEmitter = () => {
+    if (drawSenderIntervalRef.current) {
+      window.clearInterval(drawSenderIntervalRef.current);
+      drawSenderIntervalRef.current = null;
+    }
+    // Flush remaining point (send last) to ensure final position is sent.
+    const buf = drawBufferRef.current;
+    if (buf.length && activeRoomId && localPlayerId) {
+      const last = buf[buf.length - 1];
+      drawBufferRef.current = [];
+      sendDrawingData({
+        roomId: activeRoomId,
+        playerId: localPlayerId,
+        action: "DRAW",
+        drawingData: last,
+      });
+    }
   };
 
   const handleGuessSubmit = () => {
@@ -498,6 +558,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     if (!point) return;
     drawingRef.current = true;
     lastPointRef.current = point;
+    startDrawEmitter();
     emitDrawingUpdate("DRAW", point);
     ctx.lineWidth = brushSize;
     ctx.strokeStyle = brushColor;
@@ -538,6 +599,8 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
       emitShapeUpdate(activeTool, start, end);
       return;
     }
+    // Stop buffered emitter and flush remaining point
+    stopDrawEmitter();
     drawingRef.current = false;
     lastPointRef.current = null;
   };
@@ -551,6 +614,12 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Abort any buffered draws and clear the buffer, then emit CLEAR immediately
+    if (drawSenderIntervalRef.current) {
+      window.clearInterval(drawSenderIntervalRef.current);
+      drawSenderIntervalRef.current = null;
+    }
+    drawBufferRef.current = [];
     emitDrawingUpdate("CLEAR", { x: 0, y: 0 });
   };
 
