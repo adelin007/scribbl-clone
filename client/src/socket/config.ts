@@ -82,7 +82,7 @@ export const disconnectSocket = () => {
 
 const emitClientAction = (event: ClientActionEvent, data?: unknown) => {
   emitClientEvent(event, { data });
-  socket.emit(event, data);
+  socket.volatile.emit(event, data);
 };
 
 export const joinRoom = (data: JoinRoomData) => {
