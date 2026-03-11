@@ -70,7 +70,10 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   // network churn when deployed.
   const drawBufferRef = useRef<DrawDataPoint[]>([]);
   const drawSenderIntervalRef = useRef<number | null>(null);
-  const DRAW_EMIT_INTERVAL_MS = 10; // ms between emitting drawing updates to the server
+  const DRAW_EMIT_INTERVAL_MS = 33; // ms between emitting drawing updates to the server (~30Hz)
+  // Local painting batching to avoid calling canvas stroke too often.
+  const localPendingPointsRef = useRef<{ x: number; y: number }[]>([]);
+  const localDrawRafRef = useRef<number | null>(null);
   const gamePlayers = room?.players?.length ? room.players : [];
   const localPlayer =
     room?.players?.find((player) => player.socketId === socket.id) ??
@@ -258,6 +261,63 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     }, DRAW_EMIT_INTERVAL_MS);
   };
 
+  const paintLocalPending = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const pts = localPendingPointsRef.current;
+    if (!pts.length) return;
+    // ensure stroke style matches current brush
+    ctx.lineWidth = brushSizeRef.current;
+    ctx.strokeStyle = brushColorRef.current;
+    // draw all pending points as a single path connected to the
+    // previous last point to avoid visible interruptions
+    const start = lastPointRef.current ?? pts[0];
+    // If there is no prior last point (start of stroke), draw a small
+    // filled circle to avoid a gap (single-pixel/zero-length starts).
+    if (!lastPointRef.current) {
+      ctx.beginPath();
+      ctx.fillStyle = brushColorRef.current;
+      ctx.arc(
+        start.x,
+        start.y,
+        (brushSizeRef.current || 1) / 2,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    for (let i = 0; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x, pts[i].y);
+    }
+    ctx.stroke();
+    // keep last point as current position
+    const last = pts[pts.length - 1];
+    lastPointRef.current = { x: last.x, y: last.y };
+    localPendingPointsRef.current = [];
+  };
+
+  const startLocalDrawLoop = () => {
+    if (localDrawRafRef.current) return;
+    const loop = () => {
+      paintLocalPending();
+      localDrawRafRef.current = requestAnimationFrame(loop);
+    };
+    localDrawRafRef.current = requestAnimationFrame(loop);
+  };
+
+  const stopLocalDrawLoop = () => {
+    if (localDrawRafRef.current) {
+      cancelAnimationFrame(localDrawRafRef.current);
+      localDrawRafRef.current = null;
+    }
+    // flush any remaining points synchronously
+    paintLocalPending();
+  };
+
   const stopDrawEmitter = () => {
     if (drawSenderIntervalRef.current) {
       window.clearInterval(drawSenderIntervalRef.current);
@@ -431,6 +491,10 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
         const roomData = payload?.data as Room | undefined;
         const drawingData = roomData?.gameState?.drawingData;
         if (!drawingData) return;
+        // If we're the current drawer, we already render locally —
+        // skip replaying the full history to avoid slowing down the drawer.
+        const currentDrawerId = roomData?.gameState?.currentDrawerId;
+        if (currentDrawerId && currentDrawerId === localPlayerId) return;
         if (!canvasReady) {
           pendingDrawingDataRef.current = drawingData;
           return;
@@ -443,7 +507,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     return () => {
       unsubscribe();
     };
-  }, [canvasReady, replayDrawingData]);
+  }, [canvasReady, replayDrawingData, localPlayerId]);
 
   useEffect(() => {
     if (!canvasReady) return;
@@ -558,7 +622,10 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     if (!point) return;
     drawingRef.current = true;
     lastPointRef.current = point;
+    startLocalDrawLoop();
     startDrawEmitter();
+    // locally buffer point for painting and buffer for network emit
+    localPendingPointsRef.current.push(point);
     emitDrawingUpdate("DRAW", point);
     ctx.lineWidth = brushSize;
     ctx.strokeStyle = brushColor;
@@ -581,9 +648,8 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     if (!point) return;
     const lastPoint = lastPointRef.current;
     if (!lastPoint) return;
-    ctx.lineTo(point.x, point.y);
-    ctx.stroke();
-    lastPointRef.current = point;
+    // buffer for local paint and network emit; painting happens in rAF loop
+    localPendingPointsRef.current.push(point);
     emitDrawingUpdate("DRAW", point);
   };
 
@@ -601,6 +667,8 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     }
     // Stop buffered emitter and flush remaining point
     stopDrawEmitter();
+    // stop local paint loop and flush
+    stopLocalDrawLoop();
     drawingRef.current = false;
     lastPointRef.current = null;
   };
@@ -614,12 +682,15 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Abort any buffered draws and clear the buffer, then emit CLEAR immediately
+    // Abort any buffered draws and clear the buffers, then emit CLEAR immediately
     if (drawSenderIntervalRef.current) {
       window.clearInterval(drawSenderIntervalRef.current);
       drawSenderIntervalRef.current = null;
     }
     drawBufferRef.current = [];
+    // stop local painter and flush
+    stopLocalDrawLoop();
+    localPendingPointsRef.current = [];
     emitDrawingUpdate("CLEAR", { x: 0, y: 0 });
   };
 
