@@ -70,7 +70,7 @@ export const GameView = ({ room, playerName, playerColor }: GameViewProps) => {
   // network churn when deployed.
   const drawBufferRef = useRef<DrawDataPoint[]>([]);
   const drawSenderIntervalRef = useRef<number | null>(null);
-  const DRAW_EMIT_INTERVAL_MS = 33; // ~30Hz
+  const DRAW_EMIT_INTERVAL_MS = 10; // ms between emitting drawing updates to the server
   const gamePlayers = room?.players?.length ? room.players : [];
   const localPlayer =
     room?.players?.find((player) => player.socketId === socket.id) ??
