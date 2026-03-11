@@ -13,6 +13,7 @@ const allowedOrigins = rawOrigins
 const httpServer = createServer();
 
 const io = new Server(httpServer, {
+  transports: ["websocket"],
   cors: {
     origin: (origin, callback) => {
       // allow non-browser tools (no origin)

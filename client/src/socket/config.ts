@@ -19,7 +19,12 @@ const runtimeDefault =
 
 const URL = import.meta.env.VITE_SOCKET_URL || runtimeDefault;
 
-export const socket = io(URL, { autoConnect: false });
+export const socket = io(URL, {
+  autoConnect: false,
+  transports: ["websocket"],
+  path: "/socket.io",
+  upgrade: false,
+});
 
 export type ClientConnectionEvent =
   | "connecting"

@@ -16,20 +16,3 @@ scribble.adelinflavius.me {
       file_server
     }
 }
-
-:80 {
-    # Proxy socket.io websocket + polling traffic to the server on the Docker network
-    @socket path /socket.io /socket.io/*
-    handle @socket {
-      reverse_proxy @socket server:3000
-    }
-
-    # Serve static files and SPA fallback for all non-socket paths
-    @notSocket not path /socket.io* /socket.io
-    handle @notSocket {
-      root * /srv
-      encode gzip
-      try_files {path} /index.html
-      file_server
-    }
-}
