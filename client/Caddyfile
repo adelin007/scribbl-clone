@@ -16,3 +16,7 @@ scribble.adelinflavius.me {
       file_server
     }
 }
+
+n8n.adelinflavius.me {
+    reverse_proxy n8n:5678
+}
