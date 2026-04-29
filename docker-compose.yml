@@ -46,6 +46,8 @@ services:
       N8N_BASIC_AUTH_PASSWORD: "${N8N_BASIC_AUTH_PASSWORD:-password}"
       EXECUTIONS_DATA_PRUNE: "true"
       EXECUTIONS_DATA_MAX_AGE: "168" # 7 days in hours
+      WEBHOOK_URL: "${WEBHOOK_URL}"
+      N8N_PROXY_HOPS: "1" # <--- Critical for resolving the protocol error
     networks:
       - scribbl-net
     volumes:
