@@ -19,7 +19,7 @@ scribble.adelinflavius.me {
 
 n8n.adelinflavius.me {
     basicauth {
-        {env.N8N_AUTH_USER} {env.N8N_AUTH_PASSWORD_HASH}
+        {env.N8N_AUTH_USER} {N8N_AUTH_PASSWORD_HASH}
     }
     reverse_proxy n8n:5678
 }
