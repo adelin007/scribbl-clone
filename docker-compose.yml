@@ -28,6 +28,8 @@ services:
       - "443:443"
     environment:
       NODE_ENV: production
+      N8N_AUTH_USER: "${N8N_AUTH_USER:-admin}"
+      N8N_AUTH_PASSWORD_HASH: "${N8N_AUTH_PASSWORD_HASH}"
     networks:
       - scribbl-net
     volumes:
